@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Signaler un problème{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold tracking-tight mb-1">Quel problème ?</h1>
+<p class="text-stone-500 mb-5">Choisissez une catégorie.</p>
+<div class="grid grid-cols-2 gap-3">
+  {% for c in categories %}
+  <a href="?cat={{ c.pk }}" class="bg-white rounded-2xl border border-stone-200/70 shadow-sm p-5 text-center hover:border-emerald-400 hover:shadow transition">
+    <span class="block text-3xl mb-2">{{ c.icon }}</span>
+    <span class="font-semibold">{{ c.name }}</span>
+  </a>
+  {% endfor %}
+</div>
+{% endblock %}

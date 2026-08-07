@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}{{ incident.title }}{% endblock %}
+{% block content %}
+<a href="{% url 'incident_list' %}" class="text-sm text-stone-500 hover:text-stone-700">← Tous les incidents</a>
+<div class="flex items-start justify-between gap-2 mt-2 mb-1">
+  <h1 class="text-2xl font-bold tracking-tight">{{ incident.icon }} {{ incident.title }}</h1>
+  <span class="text-xs px-2.5 py-1 rounded-full whitespace-nowrap mt-1.5 font-medium {{ incident.badge_class }}">{{ incident.get_status_display }}</span>
+</div>
+<p class="text-sm text-stone-500 mb-5">
+  {% if incident.location %}{{ incident.location }} · {% endif %}signalé par {{ incident.author.public_name }} le {{ incident.created_at|date:"j b Y à H:i" }}
+</p>
+
+{% if incident.photos.all %}
+<div class="flex gap-2 mb-5 overflow-x-auto">
+  {% for photo in incident.photos.all %}<img src="{{ photo.image.url }}" class="h-28 rounded-xl border border-stone-200 shadow-sm" alt="Photo de l'incident">{% endfor %}
+</div>
+{% endif %}
+
+{% if not is_follower and incident.author != user and incident.is_open %}
+<form method="post" action="{% url 'incident_follow' incident.pk %}" class="mb-5">{% csrf_token %}
+  <button class="w-full border-2 border-emerald-600 text-emerald-700 hover:bg-emerald-50 transition rounded-xl py-2.5 text-sm font-semibold">🔔 Me tenir informé de l'avancement</button>
+</form>
+{% endif %}
+
+<div class="bg-white rounded-2xl border border-stone-200/70 shadow-sm p-5 mb-4">
+  <h2 class="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-4">Suivi</h2>
+  <div class="border-l-2 border-emerald-100 pl-4 space-y-4">
+    {% for u in incident.updates.all %}
+    <div>
+      <p class="text-xs text-stone-400">{{ u.created_at|date:"D j b Y · H:i" }}</p>
+      <p class="text-sm mt-0.5">
+        <span class="font-semibold">{{ u.author.display_name|default:"—" }}</span>{% if u.author.is_council %} <span class="text-xs text-emerald-700 font-medium">(conseil syndical)</span>{% endif %}
+        {% if u.new_status %}{% if u.old_status %} → <span class="font-semibold">{{ u.get_new_status_display }}</span>{% else %} a signalé l'incident{% endif %}{% endif %}
+        {% if u.message %}<span class="block text-stone-700 mt-0.5">« {{ u.message }} »</span>{% endif %}
+      </p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<form method="post" action="{% url 'incident_update' incident.pk %}" class="bg-white rounded-2xl border border-stone-200/70 shadow-sm p-5 space-y-3">
+  {% csrf_token %}
+  {% if user.is_council %}
+  <div>
+    <label class="block text-sm font-medium mb-1.5">Statut</label>
+    <select name="status">
+      {% for value, label in statuses %}
+      <option value="{{ value }}" {% if value == incident.status %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  {% endif %}
+  <textarea name="message" rows="2" placeholder="Ajouter un commentaire"></textarea>
+  <button class="w-full bg-emerald-700 hover:bg-emerald-800 transition text-white rounded-xl py-3 font-semibold shadow-sm shadow-emerald-900/20">Envoyer</button>
+</form>
+{% endblock %}

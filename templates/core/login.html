@@ -1,0 +1,40 @@
+{% extends "auth_base.html" %}
+{% block title %}Connexion — Ma Résidence{% endblock %}
+{% block content %}
+<h1 class="text-3xl font-bold tracking-tight">Bon retour 👋</h1>
+<p class="text-stone-500 mt-2 mb-8">Connectez-vous pour retrouver votre résidence.</p>
+
+{% if form.errors %}
+<div class="mb-5 rounded-xl bg-red-50 border border-red-200 text-red-800 px-4 py-3 text-sm">
+  Email ou mot de passe incorrect.
+</div>
+{% endif %}
+
+<form method="post" class="space-y-5">
+  {% csrf_token %}
+  <div class="field">
+    <label class="block text-sm font-medium mb-1.5">Email</label>
+    {{ form.username }}
+  </div>
+  <div class="field">
+    <div class="flex items-center justify-between mb-1.5">
+      <label class="text-sm font-medium">Mot de passe</label>
+      <a href="{% url 'password_reset' %}" class="text-xs text-emerald-700 font-medium hover:underline">Mot de passe oublié ?</a>
+    </div>
+    {{ form.password }}
+  </div>
+  <button class="w-full bg-emerald-700 hover:bg-emerald-800 active:scale-[0.99] transition text-white rounded-xl py-3.5 font-semibold text-base shadow-sm shadow-emerald-900/20">
+    Se connecter
+  </button>
+</form>
+
+<div class="flex items-center gap-3 my-7">
+  <div class="flex-1 h-px bg-stone-200"></div>
+  <span class="text-xs text-stone-400 uppercase tracking-wide">Nouveau ici ?</span>
+  <div class="flex-1 h-px bg-stone-200"></div>
+</div>
+
+<a href="{% url 'join' %}" class="block w-full text-center border-1.5 border-stone-200 bg-white hover:border-emerald-600 hover:text-emerald-700 transition rounded-xl py-3.5 font-medium">
+  Rejoindre ma résidence avec un code
+</a>
+{% endblock %}

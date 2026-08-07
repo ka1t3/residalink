@@ -1,0 +1,31 @@
+{% extends "auth_base.html" %}
+{% block title %}Rejoindre ma résidence — Ma Résidence{% endblock %}
+{% block content %}
+<h1 class="text-3xl font-bold tracking-tight">Rejoindre ma résidence</h1>
+<p class="text-stone-500 mt-2 mb-8">Le code figure sur le courrier reçu dans votre boîte aux lettres.</p>
+
+<form method="post" class="space-y-5">
+  {% csrf_token %}
+  {% for field in form %}
+  <div class="field">
+    <label class="block text-sm font-medium mb-1.5">{{ field.label }}</label>
+    {{ field }}
+    {% if field.name == "invite_code" %}
+    <p class="text-xs text-stone-400 mt-1.5">6 caractères, ex. A3F2B1</p>
+    {% elif field.name == "password1" %}
+    <p class="text-xs text-stone-400 mt-1.5">8 caractères minimum</p>
+    {% endif %}
+    {% for error in field.errors %}
+    <p class="text-sm text-red-600 mt-1.5">{{ error }}</p>
+    {% endfor %}
+  </div>
+  {% endfor %}
+  <button class="w-full bg-emerald-700 hover:bg-emerald-800 active:scale-[0.99] transition text-white rounded-xl py-3.5 font-semibold text-base shadow-sm shadow-emerald-900/20">
+    Créer mon compte
+  </button>
+</form>
+
+<p class="text-sm text-stone-500 mt-7 text-center">
+  Déjà un compte ? <a href="{% url 'login' %}" class="text-emerald-700 font-semibold hover:underline">Se connecter</a>
+</p>
+{% endblock %}

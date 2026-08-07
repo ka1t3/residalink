@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Signaler — {{ category.name }}{% endblock %}
+{% block content %}
+<a href="{% url 'incident_new' %}" class="text-sm text-stone-500 hover:text-stone-700">← Changer de catégorie</a>
+<h1 class="text-2xl font-bold tracking-tight mt-2 mb-5">{{ category.icon }} {{ category.name }}</h1>
+
+{% if duplicates %}
+<div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-5">
+  <p class="text-sm text-amber-900 font-semibold mb-3">⚠️ Un problème de ce type est déjà signalé. Est-ce le même ?</p>
+  {% for d in duplicates %}
+  <div class="bg-white rounded-xl p-3 mb-2 shadow-sm">
+    <p class="font-semibold text-sm">{{ d.title }}{% if d.location %} — {{ d.location }}{% endif %}</p>
+    <p class="text-xs text-stone-500 mb-2">{{ d.get_status_display }} · signalé le {{ d.created_at|date:"j b Y" }}</p>
+    <form method="post" action="{% url 'incident_follow' d.pk %}">{% csrf_token %}
+      <button class="w-full border-2 border-emerald-600 text-emerald-700 hover:bg-emerald-50 transition rounded-xl py-2 text-sm font-semibold">C'est ce problème — me tenir informé</button>
+    </form>
+  </div>
+  {% endfor %}
+  <p class="text-xs text-amber-800 text-center mt-2">C'est un autre problème ? Décrivez-le ci-dessous.</p>
+</div>
+{% endif %}
+
+<form method="post" enctype="multipart/form-data" class="bg-white rounded-2xl border border-stone-200/70 shadow-sm p-5 space-y-4">
+  {% csrf_token %}
+  <div>
+    <label class="block text-sm font-medium mb-1.5">Titre</label>
+    <input name="title" required maxlength="120" placeholder="Ex : ascenseur bloqué au 3e">
+  </div>
+  <div>
+    <label class="block text-sm font-medium mb-1.5">Où ?</label>
+    <input name="location" maxlength="120" placeholder="Ex : hall B, 3e étage">
+  </div>
+  <div>
+    <label class="block text-sm font-medium mb-1.5">Description</label>
+    <textarea name="description" rows="3"></textarea>
+  </div>
+  <div>
+    <label class="block text-sm font-medium mb-1.5">Photos (facultatif)</label>
+    <input type="file" name="photos" accept="image/*" multiple class="text-sm">
+  </div>
+  <button class="w-full bg-emerald-700 hover:bg-emerald-800 transition text-white rounded-xl py-3.5 font-semibold shadow-sm shadow-emerald-900/20">Signaler l'incident</button>
+</form>
+{% endblock %}

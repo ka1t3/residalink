@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Recherche{% endblock %}
+{% block content %}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<div style="font-family: 'Inter', sans-serif;">
+
+<div class="bg-slate-800 rounded-2xl p-5 mb-6 shadow-sm">
+  <form method="get" action="{% url 'search' %}">
+    <div class="flex gap-2">
+      <input type="search" name="q" autofocus placeholder="Rechercher dans toute la résidence…" value="{{ query }}"
+             class="flex-1 !bg-slate-900 !border-slate-700 !text-white !rounded-xl !py-2.5 placeholder:!text-slate-400"
+             style="box-shadow:none">
+      <button class="bg-cyan-500 hover:bg-cyan-400 transition text-slate-900 font-semibold rounded-xl px-5">Chercher</button>
+    </div>
+  </form>
+  {% if query %}
+  <p class="text-slate-400 text-sm mt-3">{{ total }} résultat{{ total|pluralize }} pour « <span class="text-cyan-400">{{ query }}</span> »</p>
+  {% endif %}
+</div>
+
+{% if query and not total %}
+<div class="text-center text-slate-400 py-12">
+  <p class="text-3xl mb-2">🔍</p>
+  <p>Aucun résultat. Essayez d'autres mots-clés.</p>
+</div>
+{% endif %}
+
+{% if results.incidents %}
+<h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Incidents</h2>
+{% for i in results.incidents %}
+<a href="{% url 'incident_detail' i.pk %}" class="block bg-white rounded-xl border border-slate-200 p-4 mb-2 hover:border-cyan-400 transition">
+  <div class="flex items-center justify-between gap-2">
+    <span class="font-semibold text-slate-800">{{ i.icon }} {{ i.title }}</span>
+    <span class="text-xs px-2.5 py-1 rounded-full font-medium {{ i.badge_class }}">{{ i.get_status_display }}</span>
+  </div>
+  {% if i.location %}<p class="text-sm text-slate-500 mt-1">{{ i.location }}</p>{% endif %}
+</a>
+{% endfor %}
+{% endif %}
+
+{% if results.posts %}
+<h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 mt-5">Mur d'actualité</h2>
+{% for p in results.posts %}
+<a href="{% url 'post_list' %}" class="block bg-white rounded-xl border border-slate-200 p-4 mb-2 hover:border-cyan-400 transition">
+  <div class="flex items-center justify-between gap-2 mb-1">
+    <span class="text-sm text-slate-500">{{ p.author.public_name|default:"—" }} · {{ p.created_at|date:"j b Y" }}</span>
+    <span class="text-xs px-2.5 py-1 rounded-full font-medium {{ p.badge_class }}">{{ p.get_type_display }}</span>
+  </div>
+  <p class="text-slate-700 text-sm">{{ p.content|truncatechars:140 }}</p>
+</a>
+{% endfor %}
+{% endif %}
+
+{% if results.directory %}
+<h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 mt-5">Carnet de santé</h2>
+{% for item in results.directory %}
+<a href="{% url 'directory_home' %}" class="block bg-white rounded-xl border border-slate-200 p-4 mb-2 hover:border-cyan-400 transition">
+  <span class="font-semibold text-slate-800">{{ item }}</span>
+</a>
+{% endfor %}
+{% endif %}
+
+</div>
+{% endblock %}

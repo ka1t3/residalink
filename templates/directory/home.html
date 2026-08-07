@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Carnet de santé{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold tracking-tight mb-4">Carnet de santé</h1>
+
+{% if user.is_council %}
+<div class="flex flex-wrap gap-2 mb-5 text-sm">
+  <a href="{% url 'carnet_new' 'contact' %}" class="border-2 border-emerald-600 text-emerald-700 hover:bg-emerald-50 transition rounded-xl px-3 py-1.5 font-semibold">＋ Contact</a>
+  <a href="{% url 'carnet_new' 'info' %}" class="border-2 border-emerald-600 text-emerald-700 hover:bg-emerald-50 transition rounded-xl px-3 py-1.5 font-semibold">＋ Info pratique</a>
+  <a href="{% url 'carnet_new' 'travaux' %}" class="border-2 border-emerald-600 text-emerald-700 hover:bg-emerald-50 transition rounded-xl px-3 py-1.5 font-semibold">＋ Travaux</a>
+</div>
+{% endif %}
+
+{% for category, contacts in grouped.items %}
+<h2 class="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-2 mt-5">{{ category }}</h2>
+{% for c in contacts %}
+<div class="bg-white rounded-2xl border border-stone-200/70 shadow-sm p-4 mb-2">
+  <div class="flex justify-between items-start">
+    <p class="font-semibold">{{ c.name }}</p>
+    {% if user.is_council %}<a href="{% url 'carnet_edit' 'contact' c.pk %}" class="text-xs text-stone-400 hover:text-emerald-700">Modifier</a>{% endif %}
+  </div>
+  {% if c.role %}<p class="text-sm text-stone-500">{{ c.role }}</p>{% endif %}
+  <div class="flex gap-4 mt-1.5 text-sm">
+    {% if c.phone %}<a href="tel:{{ c.phone }}" class="text-emerald-700 font-semibold">📞 {{ c.phone }}</a>{% endif %}
+    {% if c.email %}<a href="mailto:{{ c.email }}" class="text-emerald-700 font-medium">✉️ Écrire</a>{% endif %}
+  </div>
+  {% if c.notes %}<p class="text-xs text-stone-400 mt-1.5">{{ c.notes }}</p>{% endif %}
+</div>
+{% endfor %}
+{% empty %}
+<div class="bg-white rounded-2xl border border-stone-200/70 shadow-sm p-8 text-center text-stone-500">
+  <p>{% if user.is_council %}Ajoutez les premiers contacts de la résidence avec les boutons ci-dessus.{% else %}Le carnet sera rempli par le conseil syndical.{% endif %}</p>
+</div>
+{% endfor %}
+
+{% if infos %}
+<h2 class="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-2 mt-7">Infos pratiques</h2>
+{% for i in infos %}
+<div class="bg-white rounded-2xl border border-stone-200/70 shadow-sm p-4 mb-2">
+  <div class="flex justify-between items-start">
+    <p class="font-semibold">{{ i.title }}</p>
+    {% if user.is_council %}<a href="{% url 'carnet_edit' 'info' i.pk %}" class="text-xs text-stone-400 hover:text-emerald-700">Modifier</a>{% endif %}
+  </div>
+  <p class="text-sm text-stone-600 mt-1">{{ i.content|linebreaksbr }}</p>
+</div>
+{% endfor %}
+{% endif %}
+
+{% if works %}
+<h2 class="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-2 mt-7">Historique des travaux</h2>
+{% for w in works %}
+<div class="bg-white rounded-2xl border border-stone-200/70 shadow-sm p-4 mb-2">
+  <div class="flex justify-between items-start">
+    <p class="font-semibold">{{ w.title }}</p>
+    <span class="flex items-center gap-3">
+      <span class="text-sm text-stone-400">{{ w.date|date:"Y" }}</span>
+      {% if user.is_council %}<a href="{% url 'carnet_edit' 'travaux' w.pk %}" class="text-xs text-stone-400 hover:text-emerald-700">Modifier</a>{% endif %}
+    </span>
+  </div>
+  <p class="text-sm text-stone-500">{% if w.company %}{{ w.company }}{% endif %}{% if w.amount %} · {{ w.amount|floatformat:0 }} €{% endif %}</p>
+  {% if w.description %}<p class="text-sm text-stone-600 mt-1">{{ w.description }}</p>{% endif %}
+</div>
+{% endfor %}
+{% endif %}
+{% endblock %}

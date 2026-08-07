@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Mur d'actualité{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold tracking-tight mb-4">Mur d'actualité</h1>
+
+<form method="post" action="{% url 'post_create' %}" enctype="multipart/form-data" class="bg-white rounded-2xl border border-stone-200/70 shadow-sm p-4 mb-6 space-y-3">
+  {% csrf_token %}
+  <textarea name="content" rows="2" required placeholder="Partager une info avec la résidence…"></textarea>
+  <label class="flex items-center gap-2 text-sm text-stone-500 cursor-pointer">
+    📷 Ajouter des photos
+    <input type="file" name="photos" accept="image/*" multiple class="hidden" onchange="document.getElementById('pcount').textContent = this.files.length ? this.files.length + ' photo(s)' : ''">
+    <span id="pcount" class="text-emerald-700 font-medium"></span>
+  </label>
+  <div class="flex gap-2 items-center">
+    <select name="type" class="!w-auto flex-1 text-sm" onchange="document.getElementById('evd').classList.toggle('hidden', this.value !== 'evenement')">
+      {% for value, label in types %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+    </select>
+    <input type="date" name="event_date" id="evd" class="hidden !w-auto text-sm">
+    {% if user.is_council %}
+    <label class="flex items-center gap-1.5 text-sm text-stone-600 whitespace-nowrap"><input type="checkbox" name="pinned" class="!w-auto">📌 Épingler</label>
+    {% endif %}
+    <button class="bg-emerald-700 hover:bg-emerald-800 transition text-white rounded-xl px-5 py-2.5 text-sm font-semibold shadow-sm shadow-emerald-900/20">Publier</button>
+  </div>
+</form>
+
+<div class="flex gap-2 overflow-x-auto pb-2 mb-4 -mx-1 px-1">
+  <a href="{% url 'post_list' %}"
+     class="whitespace-nowrap text-sm px-3 py-1.5 rounded-full font-medium transition {% if not active_type %}bg-emerald-600 text-white{% else %}bg-emerald-50 text-emerald-700 hover:bg-emerald-100{% endif %}">Tout</a>
+  {% for value, label in types %}
+  <a href="?type={{ value }}"
+     class="whitespace-nowrap text-sm px-3 py-1.5 rounded-full font-medium transition {% if active_type == value %}bg-emerald-600 text-white{% else %}bg-emerald-50 text-emerald-700 hover:bg-emerald-100{% endif %}">{{ label }}</a>
+  {% endfor %}
+</div>
+
+{% for post in posts %}
+<div class="bg-white rounded-2xl border border-stone-200/70 shadow-sm p-4 mb-3">
+  <div class="flex items-center justify-between mb-1.5">
+    <p class="text-sm flex items-center gap-2">
+      <span class="w-7 h-7 rounded-full bg-stone-100 text-stone-600 text-xs font-semibold flex items-center justify-center">{{ post.author.display_name|first|upper|default:"—" }}</span>
+      <span class="font-semibold">{{ post.author.public_name|default:"—" }}</span>
+      <span class="text-stone-400">· {{ post.created_at|date:"j b" }}</span>
+    </p>
+    <span class="text-xs px-2.5 py-1 rounded-full font-medium {{ post.badge_class }}">{% if post.pinned %}📌 {% endif %}{{ post.get_type_display }}</span>
+  </div>
+  <p class="mb-1">{{ post.content|linebreaksbr }}</p>
+  {% if post.event_date %}<p class="text-sm text-purple-700 font-semibold">📅 {{ post.event_date|date:"l j F" }}</p>{% endif %}
+  {% if post.photos.all %}
+  <div class="flex gap-2 mt-2 overflow-x-auto">
+    {% for photo in post.photos.all %}
+    <a href="{{ photo.image.url }}" target="_blank"><img src="{{ photo.image.url }}" class="h-32 rounded-xl border border-stone-200 shadow-sm" alt="Photo de la publication" loading="lazy"></a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="flex items-center gap-4 mt-2 text-sm text-stone-500">
+    <form method="post" action="{% url 'post_react' post.pk %}">{% csrf_token %}
+      <button class="hover:text-emerald-700 transition">👍 {{ post.reactions.count }}</button>
+    </form>
+    <span>💬 {{ post.comments.count }}</span>
+    {% if post.author == user %}
+    <form method="post" action="{% url 'post_delete' post.pk %}" class="ml-auto"
+          onsubmit="return confirm('Supprimer ce message et ses commentaires ?')">
+      {% csrf_token %}
+      <button class="text-stone-400 hover:text-red-600 transition text-xs">Supprimer</button>
+    </form>
+    {% endif %}
+  </div>
+  {% if post.reactions.all %}
+  <p class="text-xs text-stone-400 mt-1.5">
+    Aimé par {% for r in post.reactions.all %}{{ r.user.display_name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+  </p>
+  {% endif %}
+
+  {% for comment in post.comments.all %}
+  <div class="mt-2 pl-3 border-l-2 border-stone-100 text-sm">
+    <span class="font-semibold">{{ comment.author.display_name|default:"—" }}</span>
+    <span class="text-stone-600">{{ comment.content }}</span>
+  </div>
+  {% endfor %}
+  <form method="post" action="{% url 'post_comment' post.pk %}" class="flex gap-2 mt-3">
+    {% csrf_token %}
+    <input name="content" required placeholder="Répondre" class="flex-1 !py-1.5 text-sm">
+    <button class="text-emerald-700 text-sm font-semibold hover:text-emerald-900">Envoyer</button>
+  </form>
+</div>
+{% empty %}
+<div class="bg-white rounded-2xl border border-stone-200/70 shadow-sm p-8 text-center text-stone-500">
+  <p class="text-3xl mb-2">💬</p><p>Publiez le premier message de la résidence.</p>
+</div>
+{% endfor %}
+{% endblock %}

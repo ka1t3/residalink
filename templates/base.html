@@ -1,0 +1,72 @@
+{% load static %}<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Ma Résidence{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Outfit', ui-sans-serif, system-ui, sans-serif; }
+    input:not([type=checkbox]):not([type=file]), select, textarea {
+      width: 100%; border: 1.5px solid #e7e5e4; border-radius: 0.75rem;
+      padding: 0.7rem 0.9rem; font-size: 1rem; background: #fafaf9;
+      transition: border-color .15s, background .15s, box-shadow .15s;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none; border-color: #059669; background: #fff;
+      box-shadow: 0 0 0 4px rgb(5 150 105 / 0.08);
+    }
+  </style>
+</head>
+<body class="bg-[#f6f5f1] text-stone-900 min-h-screen">
+  <header class="bg-white/90 backdrop-blur border-b border-stone-200/80 sticky top-0 z-10">
+    <div class="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
+      <a href="{% url 'home' %}" class="font-semibold tracking-tight text-emerald-800">
+        🏠 {% if user.is_authenticated and user.residence %}{{ user.residence.name }}{% else %}Ma Résidence{% endif %}
+      </a>
+      {% if user.is_authenticated %}
+      <div class="flex items-center gap-3">
+        {% if user.residence_id %}
+        <form method="get" action="{% url 'search' %}" class="hidden sm:block">
+          <input type="search" name="q" placeholder="Rechercher…" value="{{ request.GET.q|default:'' }}"
+                 class="!w-44 !py-1.5 !px-3 text-sm">
+        </form>
+        <a href="{% url 'search' %}" class="sm:hidden text-stone-500" aria-label="Rechercher">🔍</a>
+        {% endif %}
+        <a href="{% url 'profile' %}" class="flex items-center gap-2 text-sm text-stone-600 hover:text-stone-900">
+          <span class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 font-semibold flex items-center justify-center">{{ user.display_name|first|upper }}</span>
+        </a>
+      </div>
+      {% endif %}
+    </div>
+  </header>
+
+  <main class="max-w-2xl mx-auto px-4 py-6 pb-28">
+    {% for message in messages %}
+    <div class="mb-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 px-4 py-3 text-sm shadow-sm">{{ message }}</div>
+    {% endfor %}
+    {% block content %}{% endblock %}
+  </main>
+
+  {% if user.is_authenticated %}
+  <nav class="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur border-t border-stone-200/80 pb-[env(safe-area-inset-bottom)]">
+    <div class="max-w-2xl mx-auto grid grid-cols-3 text-center text-xs p-1.5 gap-1">
+      {% if "incidents" in active_modules %}
+      <a href="{% url 'incident_list' %}" class="py-2 rounded-xl transition {% if '/incidents/' in request.path %}bg-emerald-50 text-emerald-800 font-semibold{% else %}text-stone-500 hover:bg-stone-50{% endif %}">
+        <span class="block text-xl">🔧</span>Incidents</a>
+      {% endif %}
+      {% if "wall" in active_modules %}
+      <a href="{% url 'post_list' %}" class="py-2 rounded-xl transition {% if '/mur/' in request.path %}bg-emerald-50 text-emerald-800 font-semibold{% else %}text-stone-500 hover:bg-stone-50{% endif %}">
+        <span class="block text-xl">💬</span>Mur</a>
+      {% endif %}
+      {% if "directory" in active_modules %}
+      <a href="{% url 'directory_home' %}" class="py-2 rounded-xl transition {% if '/carnet/' in request.path %}bg-emerald-50 text-emerald-800 font-semibold{% else %}text-stone-500 hover:bg-stone-50{% endif %}">
+        <span class="block text-xl">📒</span>Carnet</a>
+      {% endif %}
+    </div>
+  </nav>
+  {% endif %}
+</body>
+</html>

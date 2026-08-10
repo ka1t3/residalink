@@ -1,10 +1,20 @@
+import os
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm
+from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from .forms import JoinForm, ProfileForm
 from .search import search_all
+
+
+def service_worker(request):
+    with open(os.path.join(settings.BASE_DIR, "static", "sw.js")) as f:
+        resp = HttpResponse(f.read(), content_type="application/javascript")
+    resp["Service-Worker-Allowed"] = "/"
+    return resp
 
 
 def join(request):
@@ -21,7 +31,14 @@ def join(request):
 
 @login_required
 def home(request):
-    return redirect("incident_list")
+    from .models import ResidenceModule
+    mods = set(ResidenceModule.objects.filter(
+        residence_id=request.user.residence_id, enabled=True
+    ).values_list("module", flat=True))
+    if "wall" in mods: return redirect("post_list")
+    if "incidents" in mods: return redirect("incident_list")
+    if "directory" in mods: return redirect("directory_home")
+    return redirect("profile")
 
 
 @login_required

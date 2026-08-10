@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Mentions légales — Ma Résidence{% endblock %}
+{% block content %}
+<div class="prose prose-sm max-w-none">
+<h1 class="text-2xl font-extrabold tracking-tight mb-2">Mentions légales</h1>
+<p class="text-sm text-neutral-500 mb-6">Dernière mise à jour : {% now "j F Y" %}</p>
+
+<h2 class="text-lg font-bold mt-6 mb-2">Éditeur du site</h2>
+<p>Le site <strong>residalink.com</strong> est édité à titre bénévole et non commercial par un résident de la copropriété :</p>
+<ul>
+  <li>Nom / Prénom : ABLE Anoh</li>
+  <li>Statut : particulier, initiative bénévole (site sans but lucratif)</li>
+  <li>Contact : residalink.vitamins791@passmail.net</li>
+</ul>
+<p>Directeur de la publication : ABLE Anoh.</p>
+
+<h2 class="text-lg font-bold mt-6 mb-2">Hébergement</h2>
+<p>Le site est hébergé par :</p>
+<ul>
+  <li><strong>Hetzner Online GmbH</strong></li>
+  <li>Industriestr. 25, 91710 Gunzenhausen, Allemagne</li>
+  <li>Site : <a href="https://www.hetzner.com" class="text-emerald-700 underline">www.hetzner.com</a></li>
+</ul>
+<p>L'envoi des notifications par e-mail est assuré par Brevo (Sendinblue SAS), 106 boulevard Haussmann, 75008 Paris, France.</p>
+
+<h2 class="text-lg font-bold mt-6 mb-2">Objet du site</h2>
+<p>Ce site est un outil privé destiné aux résidents d'une copropriété, accessible sur invitation. Il vise à faciliter la vie quotidienne de la résidence (signalement d'incidents, communication entre voisins, informations pratiques). Il ne se substitue pas au syndic professionnel et n'a pas vocation à gérer les aspects comptables, juridiques ou les assemblées générales de la copropriété.</p>
+
+<h2 class="text-lg font-bold mt-6 mb-2">Propriété intellectuelle</h2>
+<p>Les contenus publiés par les résidents (messages, signalements, commentaires) restent la propriété de leurs auteurs. En les publiant sur le site, l'auteur accepte qu'ils soient visibles par les autres membres de sa résidence. La structure et le code du site relèvent de leur auteur ou de leurs licences respectives.</p>
+
+<h2 class="text-lg font-bold mt-6 mb-2">Responsabilité</h2>
+<p>L'éditeur met en œuvre les moyens raisonnables pour assurer le bon fonctionnement et la sécurité du site, sans garantie de disponibilité permanente. Les contenus publiés par les résidents relèvent de la responsabilité de leurs auteurs. L'éditeur se réserve la possibilité de modérer ou retirer tout contenu inapproprié.</p>
+
+<h2 class="text-lg font-bold mt-6 mb-2">Données personnelles</h2>
+<p>Le traitement de vos données personnelles est détaillé dans notre <a href="{% url 'privacy' %}" class="text-emerald-700 underline">politique de confidentialité</a>.</p>
+
+<h2 class="text-lg font-bold mt-6 mb-2">Contact</h2>
+<p>Pour toute question concernant le site : <strong>residalink.vitamins791@passmail.net</strong>.</p>
+</div>
+{% endblock %}

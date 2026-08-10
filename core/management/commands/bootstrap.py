@@ -7,8 +7,8 @@ from core.models import Residence, ResidenceModule
 from incidents.models import IncidentCategory
 
 DEFAULT_CATEGORIES = [
-    ("Ascenseur", "🛗", 1), ("Fuite d'eau", "💧", 2), ("Éclairage", "💡", 3),
-    ("Portail / porte", "🚪", 4), ("Propreté", "🧹", 5), ("Autre", "🔧", 6),
+    ("Ascenseur", "arrow-up-down", 1), ("Fuite d'eau", "droplet", 2), ("Éclairage", "lightbulb", 3),
+    ("Portail / porte", "door-open", 4), ("Propreté", "spray-can", 5), ("Autre", "wrench", 6),
 ]
 
 

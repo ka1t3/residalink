@@ -62,7 +62,7 @@ class Migration(migrations.Migration):
             name='ResidenceModule',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('module', models.CharField(choices=[('incidents', "Centre d'incidents"), ('wall', "Mur d'actualité"), ('directory', 'Carnet de santé')], max_length=30)),
+                ('module', models.CharField(choices=[('incidents', "Centre d'incidents"), ('wall', "Mur d'actualité"), ('directory', 'Information générale')], max_length=30)),
                 ('enabled', models.BooleanField(default=True)),
                 ('residence', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='modules', to='core.residence')),
             ],

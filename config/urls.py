@@ -7,10 +7,12 @@ from core import views as core
 from directory import views as directory
 from incidents import views as incidents
 from wall import views as wall
+from django.views.generic import TemplateView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", core.home, name="home"),
+    path("sw.js", core.service_worker, name="sw"),
     path("rejoindre/", core.join, name="join"),
     path("connexion/", auth_views.LoginView.as_view(template_name="core/login.html"), name="login"),
     path("deconnexion/", auth_views.LogoutView.as_view(), name="logout"),
@@ -43,6 +45,8 @@ urlpatterns = [
     path("carnet/<str:kind>/nouveau/", directory.item_edit, name="carnet_new"),
     path("carnet/<str:kind>/<int:pk>/", directory.item_edit, name="carnet_edit"),
     path("carnet/<str:kind>/<int:pk>/supprimer/", directory.item_delete, name="carnet_delete"),
+    path("confidentialite/", TemplateView.as_view(template_name="legal/privacy.html"), name="privacy"),
+    path("mentions-legales/", TemplateView.as_view(template_name="legal/terms.html"), name="terms"),
 ]
 
 if settings.DEBUG:

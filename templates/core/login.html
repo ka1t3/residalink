@@ -1,7 +1,7 @@
 {% extends "auth_base.html" %}
 {% block title %}Connexion — Ma Résidence{% endblock %}
 {% block content %}
-<h1 class="text-3xl font-bold tracking-tight">Bon retour 👋</h1>
+<h1 class="text-3xl font-bold tracking-tight">Bienvenue 👋</h1>
 <p class="text-stone-500 mt-2 mb-8">Connectez-vous pour retrouver votre résidence.</p>
 
 {% if form.errors %}
@@ -18,10 +18,17 @@
   </div>
   <div class="field">
     <div class="flex items-center justify-between mb-1.5">
-      <label class="text-sm font-medium">Mot de passe</label>
-      <a href="{% url 'password_reset' %}" class="text-xs text-emerald-700 font-medium hover:underline">Mot de passe oublié ?</a>
+      <label for="id_password" class="text-sm font-medium">Mot de passe</label>
+      <a href="{% url 'password_reset' %}" class="text-xs text-emerald-700 font-semibold hover:underline">Mot de passe oublié ?</a>
     </div>
-    {{ form.password }}
+    <div class="relative">
+      {{ form.password }}
+      <button type="button" aria-label="Afficher le mot de passe"
+        onclick="const i=document.getElementById('id_password');const s=i.type==='password';i.type=s?'text':'password';this.setAttribute('aria-label',s?'Masquer le mot de passe':'Afficher le mot de passe');"
+        class="absolute right-2 top-1/2 -translate-y-1/2 min-w-[40px] min-h-[40px] flex items-center justify-center text-neutral-500 hover:text-neutral-900">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
   </div>
   <button class="w-full bg-emerald-700 hover:bg-emerald-800 active:scale-[0.99] transition text-white rounded-xl py-3.5 font-semibold text-base shadow-sm shadow-emerald-900/20">
     Se connecter
@@ -29,9 +36,9 @@
 </form>
 
 <div class="flex items-center gap-3 my-7">
-  <div class="flex-1 h-px bg-stone-200"></div>
-  <span class="text-xs text-stone-400 uppercase tracking-wide">Nouveau ici ?</span>
-  <div class="flex-1 h-px bg-stone-200"></div>
+  <div class="flex-1 h-px bg-neutral-200"></div>
+  <span class="text-sm font-semibold text-neutral-700">Nouveau ici ?</span>
+  <div class="flex-1 h-px bg-neutral-200"></div>
 </div>
 
 <a href="{% url 'join' %}" class="block w-full text-center border-1.5 border-stone-200 bg-white hover:border-emerald-600 hover:text-emerald-700 transition rounded-xl py-3.5 font-medium">

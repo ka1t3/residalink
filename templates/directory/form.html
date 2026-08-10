@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% block title %}Carnet — {{ label }}{% endblock %}
+{% block title %}Information générale — {{ label }}{% endblock %}
 {% block content %}
-<a href="{% url 'directory_home' %}" class="text-sm text-stone-500 hover:text-stone-700">← Carnet de santé</a>
+<a href="{% url 'directory_home' %}" class="text-sm text-stone-500 hover:text-stone-700">← Information générale</a>
 <h1 class="text-2xl font-bold tracking-tight mt-2 mb-5">{% if instance %}Modifier{% else %}Ajouter{% endif %} {{ label }}</h1>
 
 <form method="post" class="bg-white rounded-2xl border border-stone-200/70 shadow-sm p-5 space-y-4">

@@ -2,29 +2,32 @@
 {% block title %}Incidents{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-bold tracking-tight mb-4">Incidents</h1>
-<a href="{% url 'incident_new' %}" class="block w-full bg-emerald-700 hover:bg-emerald-800 transition text-white rounded-xl py-3.5 font-semibold text-center mb-4 shadow-sm shadow-emerald-900/20">+ Signaler un problème</a>
+<a href="{% url 'incident_new' %}" class="flex items-center justify-center gap-2 w-full bg-neutral-900 hover:bg-black text-white rounded-2xl py-4 font-bold text-lg text-center mb-4 shadow-sm">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+  Signaler un incident
+</a>
 
 <div class="flex gap-2 overflow-x-auto pb-2 mb-4 -mx-1 px-1">
   <a href="{% url 'incident_list' %}{% if active_cat %}?categorie={{ active_cat }}{% endif %}"
-     class="whitespace-nowrap text-sm px-3 py-1.5 rounded-full font-medium transition {% if not active_status %}bg-emerald-600 text-white{% else %}bg-emerald-50 text-emerald-700 hover:bg-emerald-100{% endif %}">Tous les statuts</a>
+     class="whitespace-nowrap text-sm px-4 py-2 rounded-full font-medium {% if not active_status %}bg-neutral-900 text-white{% else %}bg-neutral-100 text-neutral-700 hover:bg-neutral-200{% endif %}">Tous les statuts</a>
   {% for value, label in statuses %}
   <a href="?statut={{ value }}{% if active_cat %}&categorie={{ active_cat }}{% endif %}"
-     class="whitespace-nowrap text-sm px-3 py-1.5 rounded-full font-medium transition {% if active_status == value %}bg-emerald-600 text-white{% else %}bg-emerald-50 text-emerald-700 hover:bg-emerald-100{% endif %}">{{ label }}</a>
+     class="whitespace-nowrap text-sm px-4 py-2 rounded-full font-medium {% if active_status == value %}bg-neutral-900 text-white{% else %}bg-neutral-100 text-neutral-700 hover:bg-neutral-200{% endif %}">{{ label }}</a>
   {% endfor %}
 </div>
 <div class="flex gap-2 overflow-x-auto pb-2 mb-6 -mx-1 px-1">
   <a href="{% url 'incident_list' %}{% if active_status %}?statut={{ active_status }}{% endif %}"
-     class="whitespace-nowrap text-sm px-3 py-1.5 rounded-full font-medium transition {% if not active_cat %}bg-emerald-600 text-white{% else %}bg-emerald-50 text-emerald-700 hover:bg-emerald-100{% endif %}">Toutes catégories</a>
+     class="whitespace-nowrap text-sm px-4 py-2 rounded-full font-medium {% if not active_cat %}bg-neutral-900 text-white{% else %}bg-neutral-100 text-neutral-700 hover:bg-neutral-200{% endif %}">Toutes catégories</a>
   {% for c in categories %}
   <a href="?categorie={{ c.pk }}{% if active_status %}&statut={{ active_status }}{% endif %}"
-     class="whitespace-nowrap text-sm px-3 py-1.5 rounded-full font-medium transition {% if active_cat == c.pk|stringformat:'s' %}bg-emerald-600 text-white{% else %}bg-emerald-50 text-emerald-700 hover:bg-emerald-100{% endif %}">{{ c.icon }} {{ c.name }}</a>
+     class="whitespace-nowrap text-sm px-4 py-2 rounded-full font-medium flex items-center gap-1.5 {% if active_cat == c.pk|stringformat:'s' %}bg-neutral-900 text-white{% else %}bg-neutral-100 text-neutral-700 hover:bg-neutral-200{% endif %}"><i data-lucide="{{ c.icon }}" class="w-3.5 h-3.5"></i> {{ c.name }}</a>
   {% endfor %}
 </div>
 
 {% for incident in open_incidents %}
 <a href="{% url 'incident_detail' incident.pk %}" class="block bg-white rounded-2xl border border-stone-200/70 shadow-sm p-4 mb-3 hover:border-emerald-300 transition">
   <div class="flex items-center justify-between gap-2">
-    <span class="font-semibold">{{ incident.icon }} {{ incident.title }}</span>
+    <span class="font-semibold flex items-center gap-1.5"><i data-lucide="{{ incident.icon }}" class="w-4 h-4"></i> {{ incident.title }}</span>
     <span class="text-xs px-2.5 py-1 rounded-full whitespace-nowrap font-medium {{ incident.badge_class }}">{{ incident.get_status_display }}</span>
   </div>
   <p class="text-sm text-stone-500 mt-1">
@@ -32,9 +35,9 @@
   </p>
 </a>
 {% empty %}
-<div class="bg-white rounded-2xl border border-stone-200/70 shadow-sm p-8 text-center text-stone-500">
-  <p class="text-3xl mb-2">✅</p>
-  <p>Aucun incident en cours dans la résidence.</p>
+<div class="bg-white rounded-2xl border border-neutral-200 shadow-sm p-10 text-center">
+  <svg class="mx-auto mb-3 text-emerald-600" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
+  <p class="text-neutral-500">Aucun incident en cours. Tout va bien dans la résidence.</p>
 </div>
 {% endfor %}
 
@@ -43,7 +46,7 @@
 {% for incident in resolved %}
 <a href="{% url 'incident_detail' incident.pk %}" class="block bg-white/70 rounded-2xl border border-stone-200/60 p-4 mb-2">
   <div class="flex items-center justify-between gap-2">
-    <span class="text-stone-600">{{ incident.icon }} {{ incident.title }}</span>
+    <span class="text-stone-600 flex items-center gap-1.5"><i data-lucide="{{ incident.icon }}" class="w-4 h-4"></i> {{ incident.title }}</span>
     <span class="text-xs px-2.5 py-1 rounded-full font-medium {{ incident.badge_class }}">Résolu</span>
   </div>
   <p class="text-sm text-stone-400 mt-1">{{ incident.created_at|date:"j b Y" }}</p>

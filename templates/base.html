@@ -3,25 +3,39 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#059669">
+  <link rel="manifest" href="{% static 'manifest.json' %}">
+  <link rel="apple-touch-icon" href="{% static 'icons/icon-192.png' %}">
+  <link rel="icon" href="{% static 'icons/icon-192.png' %}" type="image/png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <title>{% block title %}Ma Résidence{% endblock %}</title>
+
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
   <style>
-    body { font-family: 'Outfit', ui-sans-serif, system-ui, sans-serif; }
+    body { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
     input:not([type=checkbox]):not([type=file]), select, textarea {
-      width: 100%; border: 1.5px solid #e7e5e4; border-radius: 0.75rem;
-      padding: 0.7rem 0.9rem; font-size: 1rem; background: #fafaf9;
-      transition: border-color .15s, background .15s, box-shadow .15s;
+      width: 100%;
+      border: 1.5px solid #e5e5e5;
+      border-radius: 0.75rem;
+      padding: 0.7rem 0.9rem;
+      font-size: 1rem;
+      background: #fafafa;
+      transition: border-color .15s, box-shadow .15s;
     }
     input:focus, select:focus, textarea:focus {
-      outline: none; border-color: #059669; background: #fff;
-      box-shadow: 0 0 0 4px rgb(5 150 105 / 0.08);
+      outline: none;
+      border-color: #059669;
+      background: #fff;
+      box-shadow: 0 0 0 4px rgb(5 150 105 / .10);
     }
   </style>
 </head>
-<body class="bg-[#f6f5f1] text-stone-900 min-h-screen">
-  <header class="bg-white/90 backdrop-blur border-b border-stone-200/80 sticky top-0 z-10">
+
+<body class="bg-neutral-50 text-neutral-900 min-h-screen">
+  <header class="bg-white/90 backdrop-blur border-b border-neutral-200/80 sticky top-0 z-10">
     <div class="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
       <a href="{% url 'home' %}" class="font-semibold tracking-tight text-emerald-800">
         🏠 {% if user.is_authenticated and user.residence %}{{ user.residence.name }}{% else %}Ma Résidence{% endif %}
@@ -31,11 +45,11 @@
         {% if user.residence_id %}
         <form method="get" action="{% url 'search' %}" class="hidden sm:block">
           <input type="search" name="q" placeholder="Rechercher…" value="{{ request.GET.q|default:'' }}"
-                 class="!w-44 !py-1.5 !px-3 text-sm">
+                 aria-label="Rechercher dans la résidence" class="!w-44 !py-1.5 !px-3 text-sm">
         </form>
-        <a href="{% url 'search' %}" class="sm:hidden text-stone-500" aria-label="Rechercher">🔍</a>
+        <a href="{% url 'search' %}" class="sm:hidden text-neutral-500" aria-label="Rechercher">🔍</a>
         {% endif %}
-        <a href="{% url 'profile' %}" class="flex items-center gap-2 text-sm text-stone-600 hover:text-stone-900">
+        <a href="{% url 'profile' %}" class="flex items-center gap-2 text-sm text-neutral-600 hover:text-neutral-900">
           <span class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 font-semibold flex items-center justify-center">{{ user.display_name|first|upper }}</span>
         </a>
       </div>
@@ -51,22 +65,37 @@
   </main>
 
   {% if user.is_authenticated %}
-  <nav class="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur border-t border-stone-200/80 pb-[env(safe-area-inset-bottom)]">
+  <nav class="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur border-t border-neutral-200/80 pb-[env(safe-area-inset-bottom)]">
     <div class="max-w-2xl mx-auto grid grid-cols-3 text-center text-xs p-1.5 gap-1">
       {% if "incidents" in active_modules %}
-      <a href="{% url 'incident_list' %}" class="py-2 rounded-xl transition {% if '/incidents/' in request.path %}bg-emerald-50 text-emerald-800 font-semibold{% else %}text-stone-500 hover:bg-stone-50{% endif %}">
+      <a href="{% url 'incident_list' %}" class="py-2 rounded-xl transition {% if '/incidents/' in request.path %}bg-emerald-50 text-emerald-800 font-semibold{% else %}text-neutral-500 hover:bg-neutral-50{% endif %}">
         <span class="block text-xl">🔧</span>Incidents</a>
       {% endif %}
       {% if "wall" in active_modules %}
-      <a href="{% url 'post_list' %}" class="py-2 rounded-xl transition {% if '/mur/' in request.path %}bg-emerald-50 text-emerald-800 font-semibold{% else %}text-stone-500 hover:bg-stone-50{% endif %}">
+      <a href="{% url 'post_list' %}" class="py-2 rounded-xl transition {% if '/mur/' in request.path %}bg-emerald-50 text-emerald-800 font-semibold{% else %}text-neutral-500 hover:bg-neutral-50{% endif %}">
         <span class="block text-xl">💬</span>Mur</a>
       {% endif %}
       {% if "directory" in active_modules %}
-      <a href="{% url 'directory_home' %}" class="py-2 rounded-xl transition {% if '/carnet/' in request.path %}bg-emerald-50 text-emerald-800 font-semibold{% else %}text-stone-500 hover:bg-stone-50{% endif %}">
-        <span class="block text-xl">📒</span>Carnet</a>
+      <a href="{% url 'directory_home' %}" class="py-2 rounded-xl transition {% if '/carnet/' in request.path %}bg-emerald-50 text-emerald-800 font-semibold{% else %}text-neutral-500 hover:bg-neutral-50{% endif %}">
+        <span class="block text-xl">📒</span>Information générale</a>
       {% endif %}
     </div>
   </nav>
   {% endif %}
+
+  <footer class="max-w-2xl mx-auto px-4 py-8 mt-8 border-t border-neutral-200 text-center text-sm text-neutral-500">
+    <div class="flex flex-wrap justify-center gap-x-5 gap-y-2">
+      <a href="{% url 'privacy' %}" class="hover:text-neutral-900 underline">Confidentialité</a>
+      <a href="{% url 'terms' %}" class="hover:text-neutral-900 underline">Mentions légales</a>
+      <a href="mailto:residalink.vitamins791@passmail.net class="hover:text-neutral-900 underline">Contact</a>
+    </div>
+  </footer>
+
+  <script>
+    if('serviceWorker' in navigator){
+      navigator.serviceWorker.register('/sw.js');
+    }
+    if (window.lucide) { lucide.createIcons(); }
+  </script>
 </body>
 </html>

@@ -6,7 +6,7 @@ from core.models import Residence
 class IncidentCategory(models.Model):
     """Catégories administrables depuis l'admin Django (communes à toutes les résidences)."""
     name = models.CharField("Nom", max_length=60, unique=True)
-    icon = models.CharField("Icône (émoji)", max_length=8, default="🔧")
+    icon = models.CharField("Icône (nom Lucide, ex. wrench)", max_length=32, default="wrench")
     order = models.PositiveSmallIntegerField("Ordre d'affichage", default=0)
 
     class Meta:

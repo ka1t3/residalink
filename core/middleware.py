@@ -21,3 +21,21 @@ class ModuleGateMiddleware:
                     if not enabled:
                         raise Http404
         return self.get_response(request)
+
+class SecurityHeadersMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        r = self.get_response(request)
+        r["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' https://cdn.tailwindcss.com https://unpkg.com 'unsafe-eval' 'unsafe-inline'; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "font-src 'self' https://fonts.gstatic.com; "
+            "img-src 'self' data: blob:; "
+            "connect-src 'self'; manifest-src 'self'; worker-src 'self'; "
+            "frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+        )
+        r["Permissions-Policy"] = "geolocation=(), camera=(), microphone=(), payment=(), usb=()"
+        return r

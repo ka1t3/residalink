@@ -1,6 +1,14 @@
+import os
+import uuid
+
 from django.conf import settings
 from django.db import models
 from core.models import Residence
+
+
+def incident_photo_upload(instance, filename):
+    ext = os.path.splitext(filename)[1].lower()
+    return f"incidents/{instance.incident.residence_id}/{uuid.uuid4().hex}{ext}"
 
 
 class IncidentCategory(models.Model):
@@ -63,7 +71,7 @@ class Incident(models.Model):
 
 class IncidentPhoto(models.Model):
     incident = models.ForeignKey(Incident, on_delete=models.CASCADE, related_name="photos")
-    image = models.ImageField(upload_to="incidents/%Y/%m/")
+    image = models.ImageField(upload_to=incident_photo_upload)
 
 
 class IncidentUpdate(models.Model):

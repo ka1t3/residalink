@@ -69,7 +69,7 @@ function autoGrow(el){el.style.height='auto';el.style.height=el.scrollHeight+'px
   {% if post.photos.all %}
   <div class="flex gap-2 mt-2 overflow-x-auto">
     {% for photo in post.photos.all %}
-    <a href="{{ photo.image.url }}" target="_blank"><img src="{{ photo.image.url }}" class="h-32 rounded-xl border border-neutral-200 shadow-sm" alt="Photo de la publication" loading="lazy"></a>
+    <a href="{{ photo.image.url }}" target="_blank"><img src="{{ photo.image.url }}" class="h-32 rounded-xl border border-neutral-200 shadow-sm" alt="Photo de la publication" loading="lazy" onerror="this.closest('a').style.display='none'"></a>
     {% endfor %}
   </div>
   {% endif %}

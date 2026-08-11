@@ -91,6 +91,9 @@ STORAGES = {
 MEDIA_URL = "media/"
 MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", BASE_DIR / "media"))
 
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024   # 5 Mo
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 Mo
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Emails : console en dev, SMTP (Brevo) en production.

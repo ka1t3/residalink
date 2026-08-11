@@ -12,7 +12,7 @@
 
 {% if incident.photos.all %}
 <div class="flex gap-2 mb-5 overflow-x-auto">
-  {% for photo in incident.photos.all %}<img src="{{ photo.image.url }}" class="h-28 rounded-xl border border-stone-200 shadow-sm" alt="Photo de l'incident">{% endfor %}
+  {% for photo in incident.photos.all %}<img src="{{ photo.image.url }}" class="h-28 rounded-xl border border-stone-200 shadow-sm" alt="Photo de l'incident" onerror="this.style.display='none'">{% endfor %}
 </div>
 {% endif %}
 

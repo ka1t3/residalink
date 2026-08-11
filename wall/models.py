@@ -1,6 +1,14 @@
+import os
+import uuid
+
 from django.conf import settings
 from django.db import models
 from core.models import Residence
+
+
+def post_photo_upload(instance, filename):
+    ext = os.path.splitext(filename)[1].lower()
+    return f"wall/{instance.post.residence_id}/{uuid.uuid4().hex}{ext}"
 
 
 class Post(models.Model):
@@ -38,7 +46,7 @@ class Post(models.Model):
 
 class PostPhoto(models.Model):
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="photos")
-    image = models.ImageField(upload_to="wall/%Y/%m/")
+    image = models.ImageField(upload_to=post_photo_upload)
 
 
 class Comment(models.Model):

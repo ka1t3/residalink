@@ -86,3 +86,7 @@ Pour ajouter un nouveau module (ex. réservations, devis) :
 2. Ajouter le slug dans `ResidenceModule.MODULES` (`core/models.py`)
 3. Déclarer le préfixe d'URL dans `MODULE_PREFIXES` (`core/middleware.py`)
 4. Ajouter l'entrée de navigation dans `templates/base.html`
+
+## Licence
+
+Ce projet est distribué sous licence **GNU AGPL v3**. Voir le fichier [LICENSE](LICENSE).

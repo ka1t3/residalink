@@ -1,54 +1,88 @@
-# Ma Résidence — MVP
+# Residalink
 
-Plateforme de vie quotidienne pour copropriétés : incidents, mur d'actualité, carnet de santé.
-Django 6 · templates + Tailwind (CDN) · SQLite en dev, PostgreSQL en production.
+Outil de gestion quotidienne pour copropriétés : signalement d'incidents, mur d'actualité et carnet de santé de l'immeuble.
 
-## Démarrer en local (5 minutes)
+## Stack technique
+
+| Composant | Choix |
+|---|---|
+| Backend | Django 6, Python 3.12 |
+| Gestion des dépendances | uv |
+| Base de données | SQLite (dev) · PostgreSQL (production) |
+| CSS / icônes | Tailwind CSS (CDN) · Lucide Icons (CDN) |
+| Fichiers statiques | Whitenoise |
+| Serveur WSGI | Gunicorn |
+| Conteneurisation | Docker (image `uv:python3.12-bookworm-slim`) |
+| Hébergement | Coolify |
+
+## Installation locale
 
 ```bash
 uv sync
 uv run manage.py migrate
-uv run manage.py bootstrap "Résidence Les Tilleuls"   # affiche le code d'invitation
-uv run manage.py createsuperuser                       # votre compte admin
+uv run manage.py bootstrap "Résidence Les Tilleuls"   # crée la résidence et affiche le code d'invitation
+uv run manage.py createsuperuser
 uv run manage.py runserver
 ```
 
-- Site : http://localhost:8000 → « Rejoindre ma résidence » avec le code affiché
-- Admin : http://localhost:8000/admin (gérer résidence, membres, modules, carnet)
-- Promouvoir un membre au conseil syndical : admin → Utilisateurs → groupes → `conseil_syndical`
-- Les emails s'affichent dans la console en dev.
+- Accès résidents : `http://localhost:8000` → « Rejoindre ma résidence » avec le code affiché
+- Interface admin : `http://localhost:8000/admin`
+- Promouvoir un membre au conseil syndical : Admin → Utilisateurs → groupes → `conseil_syndical`
+- Les e-mails s'affichent dans la console en développement (pas d'SMTP requis)
 
-## Déployer sur Hetzner + Coolify
-
-1. VPS Hetzner CX22 (~4 €/mois), installer Coolify : `curl -fsSL https://cdn.coollabs.io/coolify/install.sh | bash`
-2. Dans Coolify : créer une base **PostgreSQL**, puis une application depuis ce dépôt Git (build : Dockerfile).
-3. Variables d'environnement de l'application :
+## Structure du projet
 
 ```
-SECRET_KEY=<50 caractères aléatoires>
-DEBUG=0
-ALLOWED_HOSTS=votredomaine.fr
-CSRF_TRUSTED_ORIGINS=https://votredomaine.fr
-SITE_URL=https://votredomaine.fr
-DATABASE_URL=postgres://... (fourni par Coolify)
-EMAIL_HOST=smtp-relay.brevo.com
-EMAIL_HOST_USER=<identifiant Brevo>
-EMAIL_HOST_PASSWORD=<clé SMTP Brevo>
-DEFAULT_FROM_EMAIL=Ma Résidence <notifications@votredomaine.fr>
-MEDIA_ROOT=/data/media
+residalink/
+├── config/        # Configuration Django (settings, urls, wsgi, asgi)
+├── core/          # Résidences, comptes utilisateurs, activation des modules, notifications, recherche
+├── incidents/     # Signalement et suivi d'incidents (catégories, statuts, photos, journal)
+├── wall/          # Mur d'actualité : posts, commentaires, réactions, alertes
+├── directory/     # Carnet de santé : contacts, informations pratiques, historique des travaux
+└── templates/     # Templates HTML globaux
 ```
 
-4. Monter un volume persistant sur `/data` (photos d'incidents).
-5. Pointer le domaine vers le VPS ; Coolify gère le HTTPS automatiquement.
-6. Sur le serveur : `python manage.py bootstrap "Nom de la résidence"` puis `createsuperuser` (via le terminal Coolify).
-7. Brevo : configurer SPF/DKIM sur le domaine avant d'inviter les résidents (sinon → spam).
+## Déploiement (Docker + Coolify)
 
-## Architecture
+Le `Dockerfile` collecte les fichiers statiques au build, puis exécute `migrate` et `gunicorn` au démarrage du conteneur. Aucune commande manuelle n'est nécessaire pour le déploiement courant.
 
-Monolithe modulaire : une app Django = un module produit (`incidents`, `wall`, `directory`).
-`core` porte la résidence, les comptes et l'activation des modules (`ResidenceModule`).
-Toutes les tables métier portent `residence_id` : le multi-résidences est structurellement prêt.
-Le middleware `ModuleGateMiddleware` masque et bloque les modules désactivés.
+**Procédure initiale :**
 
-Ajouter un module futur (devis, réservations…) = créer une app, l'ajouter à
-`ResidenceModule.MODULES`, `MODULE_PREFIXES` (middleware) et la navigation. Rien d'autre.
+1. Créer une application depuis ce dépôt Git dans Coolify (build : Dockerfile)
+2. Créer une base **PostgreSQL** gérée dans Coolify et récupérer son `DATABASE_URL`
+3. Renseigner les variables d'environnement (voir ci-dessous)
+4. Monter un volume persistant sur `/data` pour conserver les photos entre les redéploiements
+5. Coolify gère le HTTPS et le DNS automatiquement
+6. Via le terminal Coolify, initialiser la résidence :
+   ```bash
+   python manage.py bootstrap "Nom de la résidence"
+   python manage.py createsuperuser
+   ```
+
+### Variables d'environnement
+
+| Variable | Description |
+|---|---|
+| `SECRET_KEY` | Clé secrète Django (50 caractères aléatoires minimum) |
+| `DEBUG` | `0` en production |
+| `ALLOWED_HOSTS` | Domaine(s) autorisé(s), séparés par des virgules |
+| `CSRF_TRUSTED_ORIGINS` | Origine(s) de confiance pour le CSRF (ex. `https://votredomaine.fr`) |
+| `SITE_URL` | URL publique complète (utilisée dans les e-mails) |
+| `DATABASE_URL` | URL de connexion PostgreSQL (fournie par Coolify) |
+| `EMAIL_HOST` | Serveur SMTP sortant |
+| `EMAIL_PORT` | Port SMTP (défaut : `587`) |
+| `EMAIL_HOST_USER` | Identifiant SMTP |
+| `EMAIL_HOST_PASSWORD` | Mot de passe / clé SMTP |
+| `DEFAULT_FROM_EMAIL` | Expéditeur affiché dans les notifications |
+| `MEDIA_ROOT` | Chemin de stockage des fichiers uploadés (ex. `/data/media`) |
+
+## Ajouter un module
+
+L'architecture est un monolithe modulaire : chaque module est une app Django indépendante. Toutes les tables métier portent un `residence_id`, rendant le multi-résidences structurellement opérationnel. Le middleware `ModuleGateMiddleware` bloque automatiquement l'accès aux modules désactivés.
+
+Pour ajouter un nouveau module (ex. réservations, devis) :
+
+1. Créer une app Django (`python manage.py startapp <nom>`)
+2. Ajouter le slug dans `ResidenceModule.MODULES` (`core/models.py`)
+3. Déclarer le préfixe d'URL dans `MODULE_PREFIXES` (`core/middleware.py`)
+4. Ajouter l'entrée de navigation dans `templates/base.html`

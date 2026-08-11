@@ -3,7 +3,7 @@
 {% block content %}
 <a href="{% url 'incident_list' %}" class="text-sm text-stone-500 hover:text-stone-700">← Tous les incidents</a>
 <div class="flex items-start justify-between gap-2 mt-2 mb-1">
-  <h1 class="text-2xl font-bold tracking-tight">{{ incident.icon }} {{ incident.title }}</h1>
+  <h1 class="text-2xl font-bold tracking-tight"><i data-lucide="{{ incident.icon }}" class="inline-block w-6 h-6 align-middle mr-1"></i>{{ incident.title }}</h1>
   <span class="text-xs px-2.5 py-1 rounded-full whitespace-nowrap mt-1.5 font-medium {{ incident.badge_class }}">{{ incident.get_status_display }}</span>
 </div>
 <p class="text-sm text-stone-500 mb-5">

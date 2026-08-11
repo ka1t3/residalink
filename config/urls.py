@@ -1,8 +1,8 @@
 from django.conf import settings
-from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
-from django.urls import path, reverse_lazy
+from django.urls import path, re_path, reverse_lazy
+from django.views.static import serve
 from core import views as core
 from directory import views as directory
 from incidents import views as incidents
@@ -49,5 +49,6 @@ urlpatterns = [
     path("mentions-legales/", TemplateView.as_view(template_name="legal/terms.html"), name="terms"),
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+urlpatterns += [
+    re_path(r"^media/(?P<path>.*)$", serve, {"document_root": settings.MEDIA_ROOT}),
+]

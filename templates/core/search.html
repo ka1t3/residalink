@@ -30,7 +30,7 @@
 {% for i in results.incidents %}
 <a href="{% url 'incident_detail' i.pk %}" class="block bg-white rounded-xl border border-slate-200 p-4 mb-2 hover:border-cyan-400 transition">
   <div class="flex items-center justify-between gap-2">
-    <span class="font-semibold text-slate-800">{{ i.icon }} {{ i.title }}</span>
+    <span class="font-semibold text-slate-800 flex items-center gap-1.5"><i data-lucide="{{ i.icon }}" class="w-4 h-4"></i> {{ i.title }}</span>
     <span class="text-xs px-2.5 py-1 rounded-full font-medium {{ i.badge_class }}">{{ i.get_status_display }}</span>
   </div>
   {% if i.location %}<p class="text-sm text-slate-500 mt-1">{{ i.location }}</p>{% endif %}

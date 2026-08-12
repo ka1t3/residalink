@@ -9,6 +9,15 @@
 <p class="text-sm text-stone-500 mb-5">
   {% if incident.location %}{{ incident.location }} · {% endif %}signalé par {{ incident.author.public_name }} le {{ incident.created_at|date:"j b Y à H:i" }}
 </p>
+{% if incident.author == user %}
+<a href="{% url 'incident_edit' incident.pk %}" class="inline-block mb-4 text-sm text-emerald-700 font-semibold hover:underline">Modifier l'incident</a>
+{% endif %}
+{% if incident.description %}
+<div class="bg-white rounded-2xl border border-neutral-200 shadow-sm p-5 mb-4">
+  <h2 class="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">Description</h2>
+  <p class="text-neutral-700 whitespace-pre-line">{{ incident.description }}</p>
+</div>
+{% endif %}
 
 {% if incident.photos.all %}
 <div class="flex gap-2 mb-5 overflow-x-auto">

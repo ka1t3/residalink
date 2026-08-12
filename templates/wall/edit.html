@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Modifier la publication{% endblock %}
+{% block content %}
+<a href="{% url 'post_list' %}" class="text-sm text-neutral-500 hover:text-neutral-700">← Retour au mur</a>
+<h1 class="text-2xl font-bold tracking-tight mt-2 mb-5">Modifier la publication</h1>
+<form method="post" enctype="multipart/form-data" class="bg-white rounded-2xl border border-neutral-200 shadow-sm p-4 space-y-3">
+  {% csrf_token %}
+  <label for="content" class="sr-only">Message</label>
+  <textarea id="content" name="content" rows="4" required
+            oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
+            class="!resize-none overflow-hidden">{{ post.content }}</textarea>
+
+  {% if post.photos.all %}
+  <div class="flex flex-wrap gap-3">
+    {% for photo in post.photos.all %}
+    <div class="relative">
+      <img src="{{ photo.image.url }}" class="h-24 w-24 object-cover rounded-xl border border-neutral-200 shadow-sm" alt="Photo de la publication" loading="lazy">
+      <label class="flex items-center gap-1 mt-1 text-xs text-neutral-500 hover:text-red-600 cursor-pointer justify-center">
+        <input type="checkbox" name="delete_photos" value="{{ photo.pk }}" class="!w-auto">
+        Supprimer
+      </label>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <label for="edit-photos"
+         class="flex items-center gap-3 w-full px-4 py-3 rounded-xl border-2 border-dashed border-neutral-300 text-neutral-500 hover:border-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 cursor-pointer transition">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="shrink-0">
+      <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z"/>
+      <circle cx="12" cy="13" r="3"/>
+      <path d="M19 5v3M20.5 6.5h-3" stroke-width="2"/>
+    </svg>
+    <span class="font-medium">Ajouter des photos</span>
+    <span id="epc" class="ml-auto text-sm text-emerald-700 font-semibold"></span>
+  </label>
+  <input type="file" name="photos" id="edit-photos" accept="image/*" multiple class="hidden"
+         aria-label="Ajouter une ou plusieurs photos"
+         onchange="document.getElementById('epc').textContent = this.files.length ? this.files.length + ' photo(s)' : ''">
+
+  <div class="flex flex-wrap gap-2 items-center">
+    <label for="type" class="sr-only">Type</label>
+    <select name="type" id="type" class="!w-auto flex-1 text-sm">
+      {% for value, label in types %}<option value="{{ value }}" {% if value == post.type %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    <button class="bg-neutral-900 hover:bg-black text-white rounded-xl px-5 py-2.5 text-sm font-semibold">Enregistrer</button>
+  </div>
+</form>
+{% endblock %}

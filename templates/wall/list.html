@@ -80,7 +80,8 @@ function autoGrow(el){el.style.height='auto';el.style.height=el.scrollHeight+'px
     </form>
     <span>💬 {{ post.comments.count }}</span>
     {% if post.author == user %}
-    <form method="post" action="{% url 'post_delete' post.pk %}" class="ml-auto"
+    <a href="{% url 'post_edit' post.pk %}" class="ml-auto text-neutral-400 hover:text-emerald-700 transition text-xs">Modifier</a>
+    <form method="post" action="{% url 'post_delete' post.pk %}"
           onsubmit="return confirm('Supprimer ce message et ses commentaires ?')">
       {% csrf_token %}
       <button class="text-neutral-400 hover:text-red-600 transition text-xs">Supprimer</button>

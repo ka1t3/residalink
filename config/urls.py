@@ -47,6 +47,8 @@ urlpatterns = [
     path("carnet/<str:kind>/<int:pk>/supprimer/", directory.item_delete, name="carnet_delete"),
     path("confidentialite/", TemplateView.as_view(template_name="legal/privacy.html"), name="privacy"),
     path("mentions-legales/", TemplateView.as_view(template_name="legal/terms.html"), name="terms"),
+    path("mur/<int:pk>/modifier/", wall.post_edit, name="post_edit"),
+    path("incidents/<int:pk>/modifier/", incidents.incident_edit, name="incident_edit"),
 ]
 
 urlpatterns += [

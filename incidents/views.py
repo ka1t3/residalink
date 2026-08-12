@@ -63,8 +63,7 @@ def incident_new(request):
         )
         for f in request.FILES.getlist("photos")[:3]:
             IncidentPhoto.objects.create(incident=incident, image=f)
-        IncidentUpdate.objects.create(incident=incident, author=request.user, new_status="signale",
-                                      message=incident.description)
+        IncidentUpdate.objects.create(incident=incident, author=request.user, new_status="signale")
         notify(_council_members(request.user.residence_id),
                f"[{request.user.residence.name}] Nouvel incident : {incident.title}",
                f"{request.user.public_name} a signalé un incident ({category.name}).\n\n{incident.description}",
@@ -122,3 +121,24 @@ def incident_update(request, pk):
                f"{request.user.public_name} : {message}",
                f"/incidents/{incident.pk}/", kind="incidents")
     return redirect("incident_detail", pk=pk)
+
+@login_required
+def incident_edit(request, pk):
+    incident = get_object_or_404(_residence_incidents(request), pk=pk, author=request.user)
+    if request.method == "POST":
+        incident.title = request.POST.get("title", "").strip()[:120] or incident.title
+        incident.description = request.POST.get("description", "").strip()
+        incident.location = request.POST.get("location", "").strip()
+        cat_id = request.POST.get("category")
+        if cat_id:
+            incident.category = get_object_or_404(IncidentCategory, pk=cat_id)
+        incident.save()
+        for photo in IncidentPhoto.objects.filter(
+                pk__in=request.POST.getlist("delete_photos"), incident=incident):
+            photo.delete()
+        for f in request.FILES.getlist("photos")[:max(0, 3 - incident.photos.count())]:
+            IncidentPhoto.objects.create(incident=incident, image=f)
+        messages.success(request, "Incident modifié")
+        return redirect("incident_detail", pk=incident.pk)
+    return render(request, "incidents/edit.html",
+                  {"incident": incident, "categories": IncidentCategory.objects.all()})

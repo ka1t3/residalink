@@ -70,3 +70,22 @@ def post_react(request, pk):
     if not created:
         reaction.delete()
     return redirect("post_list")
+
+@login_required
+def post_edit(request, pk):
+    post = get_object_or_404(_residence_posts(request), pk=pk, author=request.user)
+    if request.method == "POST":
+        content = request.POST.get("content", "").strip()
+        if content:
+            post.content = content
+            post.type = request.POST.get("type", post.type)
+            post.save()
+            del_ids = request.POST.getlist("delete_photos")
+            for photo in PostPhoto.objects.filter(pk__in=del_ids, post=post):
+                photo.delete()
+            remaining = 3 - post.photos.count()
+            for f in request.FILES.getlist("photos")[:max(0, remaining)]:
+                PostPhoto.objects.create(post=post, image=f)
+            messages.success(request, "Message modifié")
+            return redirect("post_list")
+    return render(request, "wall/edit.html", {"post": post, "types": Post.TYPES})

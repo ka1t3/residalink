@@ -4,8 +4,11 @@ from django.contrib import messages
 from django.contrib.auth import login, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm
+from django.core.mail import EmailMessage
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
+from django.urls import reverse
+from django.views.decorators.http import require_POST
 from .forms import JoinForm, ProfileForm
 from .search import search_all
 
@@ -29,8 +32,9 @@ def join(request):
     return render(request, "core/join.html", {"form": form})
 
 
-@login_required
 def home(request):
+    if not request.user.is_authenticated:
+        return render(request, "landing.html")
     from .models import ResidenceModule
     mods = set(ResidenceModule.objects.filter(
         residence_id=request.user.residence_id, enabled=True
@@ -39,6 +43,36 @@ def home(request):
     if "incidents" in mods: return redirect("incident_list")
     if "directory" in mods: return redirect("directory_home")
     return redirect("profile")
+
+
+@require_POST
+def residence_request(request):
+    name = request.POST.get("name", "").strip()
+    email = request.POST.get("email", "").strip()
+    address = request.POST.get("address", "").strip()
+    role = request.POST.get("role", "").strip()
+    message = request.POST.get("message", "").strip()
+
+    if not (name and email and address):
+        return redirect(f"{reverse('home')}?erreur=1#creer")
+
+    corps = (
+        "Nouvelle demande de création de résidence\n\n"
+        f"Nom : {name}\n"
+        f"E-mail : {email}\n"
+        f"Adresse : {address}\n"
+        f"Profil : {role or '—'}\n"
+        f"Message : {message or '—'}\n"
+    )
+    EmailMessage(
+        subject=f"[Residalink] Demande de résidence — {name}",
+        body=corps,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[getattr(settings, "SIGNUP_NOTIFY_EMAIL", settings.DEFAULT_FROM_EMAIL)],
+        reply_to=[email],
+    ).send(fail_silently=False)
+
+    return redirect(f"{reverse('home')}?envoye=1#creer")
 
 
 @login_required

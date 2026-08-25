@@ -12,6 +12,7 @@ from django.views.generic import TemplateView
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", core.home, name="home"),
+    path("demande-residence/", core.residence_request, name="residence_request"),
     path("sw.js", core.service_worker, name="sw"),
     path("rejoindre/", core.join, name="join"),
     path("connexion/", auth_views.LoginView.as_view(template_name="core/login.html"), name="login"),

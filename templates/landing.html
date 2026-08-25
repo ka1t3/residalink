@@ -1,0 +1,332 @@
+{% load static %}
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Residalink — la vie de votre immeuble, au clair</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script>
+tailwind.config = { theme: { extend: {
+  fontFamily: { sans: ['Inter','ui-sans-serif','system-ui','sans-serif'] },
+  colors: { brand: { 50:'#ecfdf5',100:'#d1fae5',200:'#a7f3d0',500:'#10b981',600:'#059669',700:'#047857',800:'#065f46',900:'#064e3b' } }
+}}}
+</script>
+<style>
+  html{scroll-behavior:smooth}
+  body{font-family:'Inter',system-ui,sans-serif}
+  .eyebrow{font-family:ui-monospace,'SFMono-Regular',Menlo,monospace;letter-spacing:.14em}
+  /* Signature: pipeline de suivi */
+  @keyframes pulse-dot{0%,100%{box-shadow:0 0 0 0 rgba(5,150,105,.45)}50%{box-shadow:0 0 0 8px rgba(5,150,105,0)}}
+  .dot-active{animation:pulse-dot 2s ease-in-out infinite}
+  @keyframes grow-line{from{height:0}to{height:100%}}
+  .track-fill{animation:grow-line 1.4s ease-out forwards}
+  @keyframes fade-up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .fade-up{animation:fade-up .6s ease-out both}
+  .d1{animation-delay:.05s}.d2{animation-delay:.15s}.d3{animation-delay:.25s}.d4{animation-delay:.35s}
+  @media (prefers-reduced-motion: reduce){*{animation:none!important}}
+  input:focus,textarea:focus{outline:none;border-color:#059669;box-shadow:0 0 0 4px rgba(5,150,105,.12)}
+</style>
+</head>
+<body class="bg-neutral-50 text-neutral-900 antialiased">
+
+<!-- Header -->
+<header class="sticky top-0 z-50 bg-neutral-50/85 backdrop-blur border-b border-neutral-200">
+  <div class="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
+    <a href="#top" class="flex items-center gap-2 font-extrabold text-lg tracking-tight">
+      <span class="w-8 h-8 rounded-lg bg-brand-600 text-white grid place-items-center">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7"/><path d="M5 9v11h14V9"/><path d="M9 20v-6h6v6"/></svg>
+      </span>
+      Residalink
+    </a>
+    <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-neutral-600">
+      <a href="#atouts" class="hover:text-neutral-900">Ce que ça fait</a>
+      <a href="#etapes" class="hover:text-neutral-900">Comment ça marche</a>
+      <a href="#ouvert" class="hover:text-neutral-900">Gratuit &amp; ouvert</a>
+    </nav>
+    <div class="flex items-center gap-2">
+      <a href="https://github.com/ka1t3/residalink" target="_blank" rel="noopener" aria-label="Voir le code sur GitHub" class="hidden md:grid place-items-center w-9 h-9 rounded-xl text-neutral-600 hover:bg-neutral-200/70 hover:text-neutral-900 transition">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.73-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.3 9.3 0 0 1 2.5-.34c.85 0 1.71.12 2.5.34 1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9 0 1.37-.01 2.48-.01 2.82 0 .27.18.6.69.49A10.02 10.02 0 0 0 22 12.25C22 6.58 17.52 2 12 2Z"/></svg>
+      </a>
+      <a href="{% url 'login' %}" class="hidden sm:inline-flex text-sm font-semibold px-4 py-2 rounded-xl text-neutral-700 hover:bg-neutral-200/70 transition">Se connecter</a>
+      <a href="#creer" class="inline-flex text-sm font-semibold px-4 py-2 rounded-xl bg-neutral-900 text-white hover:bg-black transition">Créer ma résidence</a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+<!-- Hero -->
+<section class="max-w-6xl mx-auto px-5 pt-16 pb-14 md:pt-24 md:pb-20 grid md:grid-cols-2 gap-12 md:gap-8 items-center">
+  <div>
+    <p class="eyebrow fade-up d1 text-xs font-semibold text-brand-700 uppercase mb-5">Gratuit · Open source · Sans engagement</p>
+    <h1 class="fade-up d2 text-4xl md:text-5xl lg:text-[3.4rem] font-black tracking-tight leading-[1.05] mb-5">
+      La vie de votre immeuble,<br class="hidden md:block"> enfin au clair.
+    </h1>
+    <p class="fade-up d3 text-lg text-neutral-600 leading-relaxed mb-8 max-w-md">
+      Signalez un problème, suivez sa résolution, gardez le contact avec vos voisins — au même endroit. Sans se perdre dans les discussions, sans changer de syndic.
+    </p>
+    <div class="fade-up d4 flex flex-wrap gap-3">
+      <a href="#creer" class="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-base transition">
+        Créer ma résidence
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </a>
+      <a href="#demo" class="inline-flex items-center px-6 py-3.5 rounded-xl border border-neutral-300 hover:border-neutral-400 hover:bg-white font-semibold text-base transition">Demander une démo</a>
+    </div>
+  </div>
+
+  <!-- SIGNATURE : frise de suivi d'un incident -->
+  <div class="fade-up d3">
+    <div class="bg-white rounded-2xl border border-neutral-200 shadow-sm p-6 max-w-sm mx-auto">
+      <div class="flex items-center gap-3 pb-4 border-b border-neutral-100">
+        <span class="w-10 h-10 rounded-full bg-brand-50 text-brand-700 grid place-items-center shrink-0">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 12h3v8h14v-8h3z"/><path d="M12 3v6"/><rect x="9.5" y="13" width="5" height="7"/></svg>
+        </span>
+        <div>
+          <p class="font-semibold leading-tight">Ascenseur en panne</p>
+          <p class="text-sm text-neutral-500">Bâtiment A · signalé il y a 2 jours</p>
+        </div>
+      </div>
+      <div class="relative pt-5 pl-2">
+        <div class="absolute left-[14px] top-7 bottom-6 w-0.5 bg-neutral-200"></div>
+        <div class="absolute left-[14px] top-7 w-0.5 bg-brand-500 track-fill" style="height:62%"></div>
+        <!-- étapes -->
+        <div class="relative flex items-start gap-4 mb-6">
+          <span class="relative z-10 w-3 h-3 mt-1 rounded-full bg-brand-600 ring-4 ring-white"></span>
+          <div><p class="text-sm font-semibold text-neutral-900">Signalé</p><p class="text-xs text-neutral-400">Par Claire, 3e étage</p></div>
+        </div>
+        <div class="relative flex items-start gap-4 mb-6">
+          <span class="relative z-10 w-3 h-3 mt-1 rounded-full bg-brand-600 ring-4 ring-white"></span>
+          <div><p class="text-sm font-semibold text-neutral-900">Pris en compte</p><p class="text-xs text-neutral-400">Conseil syndical prévenu</p></div>
+        </div>
+        <div class="relative flex items-start gap-4 mb-6">
+          <span class="relative z-10 w-3 h-3 mt-1 rounded-full bg-brand-600 ring-4 ring-white dot-active"></span>
+          <div><p class="text-sm font-semibold text-brand-700">En cours</p><p class="text-xs text-neutral-500">Technicien contacté · intervention prévue</p></div>
+        </div>
+        <div class="relative flex items-start gap-4">
+          <span class="relative z-10 w-3 h-3 mt-1 rounded-full bg-neutral-200 ring-4 ring-white"></span>
+          <div><p class="text-sm font-medium text-neutral-400">Résolu</p></div>
+        </div>
+      </div>
+    </div>
+    <p class="text-center text-sm text-neutral-400 mt-4">Chacun voit où en est la réparation. Fini les « alors, cet ascenseur ? »</p>
+  </div>
+</section>
+
+<!-- Bandeau confiance -->
+<section class="border-y border-neutral-200 bg-white">
+  <div class="max-w-6xl mx-auto px-5 py-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+    <div class="flex items-center gap-2.5 justify-center md:justify-start"><svg width="18" height="18" class="text-brand-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span class="font-medium">100 % gratuit</span></div>
+    <div class="flex items-center gap-2.5 justify-center md:justify-start"><svg width="18" height="18" class="text-brand-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span class="font-medium">Sans engagement</span></div>
+    <div class="flex items-center gap-2.5 justify-center md:justify-start"><svg width="18" height="18" class="text-brand-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span class="font-medium">Sans changer de syndic</span></div>
+    <div class="flex items-center gap-2.5 justify-center md:justify-start"><svg width="18" height="18" class="text-brand-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span class="font-medium">Code source ouvert</span></div>
+  </div>
+</section>
+
+<!-- Problème / cadrage honnête + photo humaine -->
+<section class="max-w-6xl mx-auto px-5 py-16 md:py-20 grid md:grid-cols-2 gap-10 md:gap-12 items-center">
+  <div class="relative rounded-2xl overflow-hidden bg-brand-100 aspect-[4/3] border border-brand-200">
+    <img src="{% static 'img/residence-voisinage.jpg' %}"
+         alt="Des voisins échangent dans leur résidence"
+         class="absolute inset-0 w-full h-full object-cover"
+         onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+    <div class="absolute inset-0 hidden flex-col items-center justify-center text-brand-700 gap-3 p-8 text-center">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L7 20"/></svg>
+      <span class="text-sm font-medium max-w-[16rem]">Ajoutez ici une photo chaleureuse de votre résidence ou de vos voisins</span>
+    </div>
+  </div>
+  <div>
+    <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight mb-4 leading-tight">Le groupe WhatsApp déborde, l'extranet du syndic dort.</h2>
+    <p class="text-lg text-neutral-600 leading-relaxed">
+      Les infos importantes se noient dans les conversations, personne ne sait où en sont les travaux, et les documents utiles sont introuvables le jour où on en a besoin. Residalink rassemble tout ça dans un espace simple et calme, réservé à votre résidence — pour que voisins et conseil syndical avancent ensemble.
+    </p>
+  </div>
+</section>
+
+<!-- Atouts -->
+<section id="atouts" class="max-w-6xl mx-auto px-5 pb-4">
+  <div class="grid md:grid-cols-3 gap-5">
+    <div class="bg-white rounded-2xl border border-neutral-200 p-7">
+      <span class="w-11 h-11 rounded-xl bg-brand-50 text-brand-700 grid place-items-center mb-5"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/><path d="M21 8a2 2 0 0 0-2-2h-1a5 5 0 0 0-10 0H6a2 2 0 0 0-2 2c0 7-3 8-3 8h22s-3-1-3-8"/></svg></span>
+      <h3 class="text-lg font-bold mb-2">Le suivi des incidents</h3>
+      <p class="text-neutral-600 leading-relaxed">Un problème sur une partie commune ? On le signale une fois, et chacun suit son avancement — de « signalé » à « résolu ». Plus de doublons, plus de « c'est réglé ou pas ? ».</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-neutral-200 p-7">
+      <span class="w-11 h-11 rounded-xl bg-brand-50 text-brand-700 grid place-items-center mb-5"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 9h8"/><path d="M8 13h6"/><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
+      <h3 class="text-lg font-bold mb-2">Le mur de la résidence</h3>
+      <p class="text-neutral-600 leading-relaxed">Annonces, entraide, petits événements : les messages qui comptent restent visibles et à leur place, au lieu de défiler et de disparaître.</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-neutral-200 p-7">
+      <span class="w-11 h-11 rounded-xl bg-brand-50 text-brand-700 grid place-items-center mb-5"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
+      <h3 class="text-lg font-bold mb-2">La mémoire de l'immeuble</h3>
+      <p class="text-neutral-600 leading-relaxed">Contacts utiles, infos pratiques, travaux en cours : tout est rangé au même endroit et reste accessible, même quand les voisins changent.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Étapes -->
+<section id="etapes" class="max-w-5xl mx-auto px-5 py-16 md:py-24">
+  <div class="text-center mb-12">
+    <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight mb-3">Lancé en trois étapes</h2>
+    <p class="text-neutral-600 text-lg">Pas d'installation compliquée. Vous nous écrivez, on s'occupe du reste.</p>
+  </div>
+  <div class="grid md:grid-cols-3 gap-8 md:gap-6">
+    <div class="text-center md:text-left">
+      <div class="eyebrow text-sm font-bold text-brand-600 mb-3">01</div>
+      <h3 class="font-bold text-lg mb-2">Vous nous écrivez</h3>
+      <p class="text-neutral-600 leading-relaxed">Donnez le nom et l'adresse de votre résidence via le formulaire ci-dessous. Deux minutes suffisent.</p>
+    </div>
+    <div class="text-center md:text-left">
+      <div class="eyebrow text-sm font-bold text-brand-600 mb-3">02</div>
+      <h3 class="font-bold text-lg mb-2">On crée votre espace</h3>
+      <p class="text-neutral-600 leading-relaxed">Nous préparons l'espace privé de votre résidence et vous envoyons un code d'invitation unique.</p>
+    </div>
+    <div class="text-center md:text-left">
+      <div class="eyebrow text-sm font-bold text-brand-600 mb-3">03</div>
+      <h3 class="font-bold text-lg mb-2">Vous invitez vos voisins</h3>
+      <p class="text-neutral-600 leading-relaxed">Partagez le code. Chacun crée son compte et rejoint la résidence. C'est parti.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Gratuit & ouvert -->
+<section id="ouvert" class="bg-brand-900 text-white">
+  <div class="max-w-5xl mx-auto px-5 py-16 md:py-20">
+    <div class="grid md:grid-cols-2 gap-10 items-center">
+      <div>
+        <p class="eyebrow text-xs font-semibold text-brand-200 uppercase mb-4">Transparent par conception</p>
+        <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight mb-4 leading-tight">Gratuit, et vraiment ouvert.</h2>
+        <p class="text-brand-100 leading-relaxed text-lg mb-6">Residalink est un projet open source : son code est public, consultable par tous. Pas de publicité, pas de revente de données, aucun engagement. Vos échanges restent entre voisins.</p>
+        <a href="https://github.com/ka1t3/residalink" target="_blank" rel="noopener" class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white text-brand-900 font-semibold hover:bg-brand-50 transition">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.73-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.3 9.3 0 0 1 2.5-.34c.85 0 1.71.12 2.5.34 1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9 0 1.37-.01 2.48-.01 2.82 0 .27.18.6.69.49A10.02 10.02 0 0 0 22 12.25C22 6.58 17.52 2 12 2Z"/></svg>
+          Voir le code sur GitHub
+        </a>
+      </div>
+      <ul class="space-y-4">
+        <li class="flex items-start gap-3"><svg width="20" height="20" class="text-brand-200 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><span class="font-semibold">Code source public</span><span class="block text-brand-200 text-sm">Rien n'est caché : n'importe qui peut vérifier comment ça marche.</span></span></li>
+        <li class="flex items-start gap-3"><svg width="20" height="20" class="text-brand-200 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><span class="font-semibold">Sans publicité ni revente</span><span class="block text-brand-200 text-sm">Vos données ne sont ni monnayées ni cédées à des tiers.</span></span></li>
+        <li class="flex items-start gap-3"><svg width="20" height="20" class="text-brand-200 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><span class="font-semibold">Réservé aux résidents</span><span class="block text-brand-200 text-sm">L'accès se fait par code d'invitation. Chaque résidence a son espace privé.</span></span></li>
+        <li class="flex items-start gap-3"><svg width="20" height="20" class="text-brand-200 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><span class="font-semibold">Sur votre téléphone</span><span class="block text-brand-200 text-sm">Ajoutable à l'écran d'accueil, comme une application.</span></span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- Bande humaine + invitation -->
+<section class="max-w-6xl mx-auto px-5 py-4">
+  <div class="grid md:grid-cols-2 gap-10 md:gap-12 items-center">
+    <div class="order-2 md:order-1">
+      <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight mb-4 leading-tight">Et si votre immeuble s'y mettait ?</h2>
+      <p class="text-lg text-neutral-600 leading-relaxed mb-6">Pas besoin d'être expert, ni d'attendre l'accord de tout le monde. Un voisin motivé suffit pour lancer l'espace de la résidence — les autres rejoignent au fur et à mesure.</p>
+      <a href="#creer" class="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold transition">
+        Lancer ma résidence
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </a>
+    </div>
+    <div class="order-1 md:order-2 relative rounded-2xl overflow-hidden bg-brand-100 aspect-[4/3] border border-brand-200">
+      <img src="{% static 'img/residence-rue.jpg' %}"
+           alt="Résidence et voisinage"
+           class="absolute inset-0 w-full h-full object-cover"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div class="absolute inset-0 hidden flex-col items-center justify-center text-brand-700 gap-3 p-8 text-center">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L7 20"/></svg>
+        <span class="text-sm font-medium max-w-[16rem]">Ajoutez ici une photo de votre immeuble ou d'un moment de voisinage</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Formulaire de création -->
+<section id="creer" class="max-w-2xl mx-auto px-5 py-16 md:py-24">
+  <div class="text-center mb-8">
+    <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight mb-3">Créer l'espace de ma résidence</h2>
+    <p class="text-neutral-600 text-lg">Dites-nous où, et on vous envoie votre code d'invitation. Gratuitement.</p>
+  </div>
+
+  {% if request.GET.envoye %}
+  <div class="bg-brand-50 border border-brand-200 rounded-2xl p-8 text-center">
+    <span class="w-12 h-12 rounded-full bg-brand-600 text-white grid place-items-center mx-auto mb-4"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+    <h3 class="text-lg font-bold mb-1">Demande envoyée !</h3>
+    <p class="text-neutral-600">Merci. Vous recevrez votre code d'invitation par e-mail sous peu.</p>
+  </div>
+  {% else %}
+  <form id="signup-form" method="post" action="{% url 'residence_request' %}" class="bg-white rounded-2xl border border-neutral-200 shadow-sm p-6 md:p-8 space-y-5">
+    {% csrf_token %}
+    {% if request.GET.erreur %}<p class="text-sm text-red-600 -mt-1">Merci de remplir au moins le nom, l'e-mail et l'adresse.</p>{% endif %}
+    <div>
+      <label for="f-name" class="block text-sm font-medium mb-1.5">Votre nom</label>
+      <input id="f-name" name="name" type="text" required placeholder="Prénom et nom"
+             class="w-full border border-neutral-300 rounded-xl px-4 py-3 text-base bg-neutral-50">
+    </div>
+    <div>
+      <label for="f-email" class="block text-sm font-medium mb-1.5">Votre e-mail</label>
+      <input id="f-email" name="email" type="email" required placeholder="pour recevoir votre code d'invitation"
+             class="w-full border border-neutral-300 rounded-xl px-4 py-3 text-base bg-neutral-50">
+    </div>
+    <div>
+      <label for="f-address" class="block text-sm font-medium mb-1.5">Adresse de la résidence</label>
+      <input id="f-address" name="address" type="text" required placeholder="N°, rue, code postal, ville"
+             class="w-full border border-neutral-300 rounded-xl px-4 py-3 text-base bg-neutral-50">
+    </div>
+    <div>
+      <label for="f-role" class="block text-sm font-medium mb-1.5">Vous êtes <span class="text-neutral-400 font-normal">(facultatif)</span></label>
+      <select id="f-role" name="role" class="w-full border border-neutral-300 rounded-xl px-4 py-3 text-base bg-neutral-50">
+        <option value="">— au choix —</option>
+        <option>Copropriétaire</option>
+        <option>Locataire</option>
+        <option>Membre du conseil syndical</option>
+        <option>Association / autre</option>
+      </select>
+    </div>
+    <div>
+      <label for="f-msg" class="block text-sm font-medium mb-1.5">Un mot <span class="text-neutral-400 font-normal">(facultatif)</span></label>
+      <textarea id="f-msg" name="message" rows="3" placeholder="Le nombre de logements, vos attentes…"
+                class="w-full border border-neutral-300 rounded-xl px-4 py-3 text-base bg-neutral-50 resize-none"></textarea>
+    </div>
+    <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-xl py-3.5 text-base transition">
+      Envoyer ma demande
+    </button>
+    <p class="text-xs text-neutral-400 text-center">En envoyant, vous acceptez d'être recontacté au sujet de la création de votre espace. Vos informations ne servent qu'à ça.</p>
+  </form>
+
+  {% endif %}
+</section>
+
+<!-- Démo + connexion -->
+<section id="demo" class="max-w-5xl mx-auto px-5 pb-16 md:pb-24">
+  <div class="grid md:grid-cols-2 gap-5">
+    <div id="connexion" class="bg-white rounded-2xl border border-neutral-200 p-7 flex flex-col">
+      <h3 class="font-bold text-lg mb-2">Déjà un compte ?</h3>
+      <p class="text-neutral-600 leading-relaxed mb-5 flex-1">Votre résidence utilise déjà Residalink ? Connectez-vous avec votre code d'invitation.</p>
+      <a href="{% url 'login' %}" class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-neutral-300 hover:border-neutral-400 hover:bg-neutral-50 font-semibold transition">Se connecter</a>
+    </div>
+    <div class="bg-white rounded-2xl border border-neutral-200 p-7 flex flex-col">
+      <h3 class="font-bold text-lg mb-2">Envie de voir avant ?</h3>
+      <p class="text-neutral-600 leading-relaxed mb-5 flex-1">On vous montre l'outil en quelques minutes et on répond à vos questions, sans engagement.</p>
+      <a href="mailto:residalink.vitamins791@passmail.net?subject=Demande%20de%20démo%20Residalink" class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-neutral-300 hover:border-neutral-400 hover:bg-neutral-50 font-semibold transition">Demander une démo</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- Footer -->
+<footer class="border-t border-neutral-200 bg-white">
+  <div class="max-w-6xl mx-auto px-5 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
+    <div class="flex items-center gap-2 font-extrabold tracking-tight">
+      <span class="w-7 h-7 rounded-lg bg-brand-600 text-white grid place-items-center"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7"/><path d="M5 9v11h14V9"/></svg></span>
+      Residalink
+    </div>
+    <div class="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-neutral-500">
+      <a href="{% url 'privacy' %}" class="hover:text-neutral-900 underline">Confidentialité</a>
+      <a href="{% url 'terms' %}" class="hover:text-neutral-900 underline">Mentions légales</a>
+      <a href="mailto:residalink.vitamins791@passmail.net" class="hover:text-neutral-900 underline">Contact</a>
+      <a href="https://github.com/ka1t3/residalink" target="_blank" rel="noopener" class="hover:text-neutral-900 underline">Code source</a>
+    </div>
+    <p class="text-xs text-neutral-400">Projet open source · gratuit</p>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -107,6 +107,7 @@ if os.environ.get("EMAIL_HOST"):
 else:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "Ma Résidence <no-reply@example.com>")
+SIGNUP_NOTIFY_EMAIL = os.environ.get("SIGNUP_NOTIFY_EMAIL", DEFAULT_FROM_EMAIL)
 
 SITE_URL = os.environ.get("SITE_URL", "http://localhost:8000")
 

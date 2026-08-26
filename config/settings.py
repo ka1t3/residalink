@@ -15,6 +15,7 @@ CSRF_TRUSTED_ORIGINS = [o for o in os.environ.get("CSRF_TRUSTED_ORIGINS", "").sp
 
 INSTALLED_APPS = [
     "django.contrib.admin",
+    "axes",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
@@ -33,6 +34,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "axes.middleware.AxesMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     # Doit venir après MessageMiddleware : ce middleware appelle
     # `messages.warning()`, qui nécessite que `request._messages` soit déjà
@@ -73,6 +75,10 @@ else:
     DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "db.sqlite3"}}
 
 AUTH_USER_MODEL = "core.User"
+AUTHENTICATION_BACKENDS = [
+    "axes.backends.AxesBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "home"
 LOGOUT_REDIRECT_URL = "login"
@@ -115,7 +121,18 @@ else:
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "Ma Résidence <no-reply@example.com>")
 SIGNUP_NOTIFY_EMAIL = os.environ.get("SIGNUP_NOTIFY_EMAIL", DEFAULT_FROM_EMAIL)
 
-SITE_URL = os.environ.get("SITE_URL", "http://localhost:8000")
+# ---------------------------------------------------------------------------
+# django-axes : protection anti force brute sur la connexion
+# ---------------------------------------------------------------------------
+AXES_ENABLED = True
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = 10                          # minutes
+AXES_LOCKOUT_PARAMETERS = [["username", "ip_address"]]
+# Reset du cooldown : sinon le compte est définitivement bloqué
+AXES_RESET_COOL_OFF_ON_FAILURE_DURING_LOCKOUT = False
+# Template affiché quand le compte est verrouillé
+AXES_LOCKOUT_TEMPLATE = "core/axes_lockout.html"
+AXES_HTTP_RESPONSE_CODE = 429
 
 # URL externe de don (lien "Offrir un café" sur la landing). Vide = lien masqué.
 DONATE_URL = os.environ.get("DONATE_URL", "")

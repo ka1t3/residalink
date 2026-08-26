@@ -8,7 +8,7 @@ from django.core import mail, signing
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from .models import Residence, User
+from .models import PublicRequestCooldown, Residence, User
 
 
 class MembersCouncilTests(TestCase):
@@ -239,6 +239,137 @@ class ContactFormTests(TestCase):
         demo_residence = Residence.objects.create(name="Résidence Démo", is_demo=True)
         demo_user = User.objects.create_user(
             username="demo-contact", password="x", is_demo=True,
+            residence=demo_residence, display_name="Démo",
+        )
+        self.client.force_login(demo_user)
+        resp = self._post()
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(len(mail.outbox), 1)
+
+
+class LoginThrottleTests(TestCase):
+    """django-axes : 5 échecs → verrouillage du couple (email, IP) pendant 10 min."""
+
+    FAILURE_LIMIT = 5
+
+    def setUp(self):
+        self.residence = Residence.objects.create(name="Les Tilleuls")
+        self.user = User.objects.create_user(
+            username="locataire@example.com",
+            email="locataire@example.com",
+            password="un-mot-de-passe-solide-123",
+            residence=self.residence,
+            display_name="Locataire",
+        )
+        self.ip = "203.0.113.7"
+
+    def _login(self, username, password):
+        return self.client.post(
+            reverse("login"),
+            {"username": username, "password": password},
+            REMOTE_ADDR=self.ip,
+        )
+
+    def test_cinq_echecs_puis_verrouillage(self):
+        # Les 4 premiers échecs : simple erreur de formulaire.
+        for _ in range(self.FAILURE_LIMIT - 1):
+            resp = self._login(self.user.username, "mot-de-passe-faux")
+            self.assertEqual(resp.status_code, 200)
+
+        # 5ᵉ échec : limite atteinte, message de verrouillage affiché.
+        resp = self._login(self.user.username, "mot-de-passe-faux")
+        self.assertEqual(resp.status_code, 429)
+        self.assertTemplateUsed(resp, "core/axes_lockout.html")
+
+        # Tentative suivante : toujours verrouillée, même avec le bon mot de passe.
+        resp = self._login(self.user.username, "un-mot-de-passe-solide-123")
+        self.assertEqual(resp.status_code, 429)
+
+    def test_autre_adresse_nest_pas_verrouillee(self):
+        for _ in range(self.FAILURE_LIMIT):
+            self._login(self.user.username, "mot-de-passe-faux")
+
+        autre = User.objects.create_user(
+            username="autre@example.com", email="autre@example.com",
+            password="un-mot-de-passe-solide-123",
+            residence=self.residence, display_name="Autre",
+        )
+        resp = self._login(autre.username, "un-mot-de-passe-solide-123")
+        self.assertEqual(resp.status_code, 302)
+
+    def test_demo_pas_impacte_par_le_verrouillage(self):
+        for _ in range(self.FAILURE_LIMIT):
+            self._login(self.user.username, "mot-de-passe-faux")
+
+        demo_residence = Residence.objects.create(name="Résidence Démo", is_demo=True)
+        demo_user = User.objects.create_user(
+            username="demo-throttle", password="x", is_demo=True,
+            residence=demo_residence, display_name="Démo",
+        )
+        resp = self.client.get(reverse("demo"), REMOTE_ADDR=self.ip)
+        self.assertEqual(resp.status_code, 302)
+
+
+class ResidenceRequestThrottleTests(TestCase):
+    """Demande de résidence : honeypot + délai signé + 1 demande / IP / heure."""
+
+    def _ts(self, seconds_ago=10):
+        return signing.TimestampSigner().sign(str(int(time.time()) - seconds_ago))
+
+    def _post(self, ts=None, website="", **extra):
+        data = {
+            "name": "Camille",
+            "email": "camille@example.com",
+            "address": "12 rue de Lyon, 69003 Lyon",
+            "role": "Copropriétaire",
+            "message": "24 logements",
+            "ts": ts if ts is not None else self._ts(),
+            "website": website,
+        }
+        return self.client.post(reverse("residence_request"), data, **extra)
+
+    def test_demande_valide_envoie_email(self):
+        resp = self._post()
+        self.assertRedirects(
+            resp, f"{reverse('home')}?envoye=1#creer", fetch_redirect_response=False
+        )
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("Demande de résidence", mail.outbox[0].subject)
+        self.assertEqual(PublicRequestCooldown.objects.count(), 1)
+
+    def test_honeypot_rempli_abandon_silencieux(self):
+        resp = self._post(website="spam-bot")
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertEqual(PublicRequestCooldown.objects.count(), 0)
+
+    def test_soumission_trop_rapide_abandon_silencieux(self):
+        resp = self._post(ts=signing.TimestampSigner().sign(str(int(time.time()))))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_horodatage_forge_abandon_silencieux(self):
+        resp = self._post(ts="zzz-invalid")
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_deuxieme_demande_meme_ip_bloquee_sans_email(self):
+        self._post()
+        resp = self._post()
+        self.assertRedirects(
+            resp, f"{reverse('home')}?envoye=1#creer", fetch_redirect_response=False
+        )
+        self.assertEqual(len(mail.outbox), 1)  # seul le 1er e-mail est parti
+
+    def test_autre_ip_autorisee(self):
+        self._post()
+        self._post(REMOTE_ADDR="203.0.113.8")
+        self.assertEqual(len(mail.outbox), 2)
+
+    def test_visiteur_demo_peut_envoyer_une_demande(self):
+        demo_residence = Residence.objects.create(name="Résidence Démo", is_demo=True)
+        demo_user = User.objects.create_user(
+            username="demo-req", password="x", is_demo=True,
             residence=demo_residence, display_name="Démo",
         )
         self.client.force_login(demo_user)

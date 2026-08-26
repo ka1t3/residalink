@@ -1,5 +1,6 @@
 import os
 import time
+from datetime import timedelta
 
 from django.conf import settings
 from django.contrib import messages
@@ -15,9 +16,10 @@ from django.db import transaction
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 from .forms import JoinForm, ProfileForm
-from .models import User
+from .models import PublicRequestCooldown, User
 from .search import search_all
 
 
@@ -50,7 +52,7 @@ def join(request):
             user = form.save()
             if premier:
                 Group.objects.get_or_create(name="conseil_syndical")[0].user_set.add(user)
-        login(request, user)
+        login(request, user, backend="django.contrib.auth.backends.ModelBackend")
         messages.success(request, f"Bienvenue dans la résidence {user.residence.name} !")
         return redirect("home")
     return render(request, "core/join.html", {"form": form})
@@ -90,7 +92,7 @@ def demo(request):
         messages.error(request, "La démonstration n'est pas disponible pour le moment.")
         return redirect("home")
 
-    login(request, demo_user)
+    login(request, demo_user, backend="django.contrib.auth.backends.ModelBackend")
     return _dashboard_redirect(demo_user)
 
 
@@ -103,20 +105,64 @@ def home(request):
         or request.GET.get("creer")
         or request.GET.get("accueil")
     ):
-        return render(request, "landing.html")
+        return render(request, "landing.html", {"ts": _contact_ts()})
     return _dashboard_redirect(request.user)
+
+
+def _client_ip(request):
+    """IP du client derrière le proxy (premier hôte de X-Forwarded-For)."""
+    forwarded = request.META.get("HTTP_X_FORWARDED_FOR", "")
+    return forwarded.split(",")[0].strip() or request.META.get("REMOTE_ADDR") or "0.0.0.0"
+
+
+def _endpoint_allowed(key, request, seconds=3600):
+    """Retourne True si l'IP n'a PAS dépassé la limite pour cet endpoint.
+
+    Enregistre le passage et purge au passage les entrées obsolètes.
+    """
+    ip = _client_ip(request)
+    now = timezone.now()
+    entry = PublicRequestCooldown.objects.filter(key=key, ip=ip).first()
+    if entry and now - entry.last_at < timedelta(seconds=seconds):
+        return False
+    PublicRequestCooldown.objects.update_or_create(key=key, ip=ip, defaults={"last_at": now})
+    PublicRequestCooldown.objects.filter(last_at__lt=now - timedelta(seconds=seconds)).delete()
+    return True
 
 
 @require_POST
 def residence_request(request):
+    """Formulaire public de création de résidence.
+
+    Anti-spam : honeypot + délai minimal signé (comme /contact/) +
+    limitation 1 demande / IP / heure (stockée en base).
+    Un bot est accepté silencieusement (aucune erreur confirmée).
+    """
     name = request.POST.get("name", "").strip()
     email = request.POST.get("email", "").strip()
     address = request.POST.get("address", "").strip()
     role = request.POST.get("role", "").strip()
     message = request.POST.get("message", "").strip()
+    silent_ok = redirect(f"{reverse('home')}?envoye=1#creer")
+
+    # 1. Honeypot : un bot qui remplit ce champ est accepté sans e-mail.
+    if request.POST.get("website", "").strip():
+        return silent_ok
+
+    # 2. Délai minimal signé : le formulaire doit avoir été affiché ≥ 3 s.
+    try:
+        ts = int(signing.TimestampSigner().unsign(request.POST.get("ts", "")))
+    except (signing.BadSignature, ValueError, TypeError):
+        ts = None
+    if ts is None or int(time.time()) - ts < 3:
+        return silent_ok
 
     if not (name and email and address):
         return redirect(f"{reverse('home')}?erreur=1#creer")
+
+    # 3. Limitation de débit par IP : 1 demande / heure.
+    if not _endpoint_allowed("residence_request", request, seconds=3600):
+        return silent_ok
 
     corps = (
         "Nouvelle demande de création de résidence\n\n"
@@ -134,7 +180,7 @@ def residence_request(request):
         reply_to=[email],
     ).send(fail_silently=False)
 
-    return redirect(f"{reverse('home')}?envoye=1#creer")
+    return silent_ok
 
 
 def _contact_ts():

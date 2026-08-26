@@ -48,6 +48,27 @@ class User(AbstractUser):
         return f"{self.display_name}" + (f" · lot {self.lot}" if self.lot else "")
 
 
+class PublicRequestCooldown(models.Model):
+    """Limitation de débit simple par IP pour les endpoints publics.
+
+    Stockage en base (pas de cache mémoire : multi-workers gunicorn et
+    redéploiements). Les entrées obsolètes sont purgées à chaque écriture
+    (pas de cron requis).
+    """
+
+    key = models.CharField("Clé d'endpoint", max_length=40)
+    ip = models.GenericIPAddressField("Adresse IP")
+    last_at = models.DateTimeField("Dernier passage")
+
+    class Meta:
+        verbose_name = "Limitation de débit (endpoint public)"
+        verbose_name_plural = "Limitations de débit (endpoints publics)"
+        unique_together = ("key", "ip")
+
+    def __str__(self):
+        return f"{self.key} · {self.ip} · {self.last_at:%d/%m %H:%M}"
+
+
 class ResidenceModule(models.Model):
     MODULES = [
         ("incidents", "Centre d'incidents"),

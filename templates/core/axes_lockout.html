@@ -1,0 +1,23 @@
+{% extends "auth_base.html" %}
+{% block title %}Trop de tentatives — Ma Résidence{% endblock %}
+{% block content %}
+<div class="mb-5 rounded-xl bg-red-50 border border-red-200 text-red-800 px-4 py-3 text-sm">
+  Trop de tentatives de connexion. Votre compte est temporairement verrouillé.
+  Veuillez réessayer dans <strong>10 minutes</strong>.
+</div>
+
+<h1 class="text-3xl font-bold tracking-tight">Trop de tentatives 🔒</h1>
+<p class="text-stone-500 mt-2 mb-8">
+  Pour votre sécurité, les connexions sont limitées après
+  {{ failure_limit }} échecs successifs.
+  Si vous avez oublié votre mot de passe, vous pouvez le réinitialiser.
+</p>
+
+<a href="{% url 'password_reset' %}" class="block w-full text-center bg-emerald-700 hover:bg-emerald-800 transition text-white rounded-xl py-3.5 font-semibold text-base shadow-sm shadow-emerald-900/20">
+  Me réinitialiser mon mot de passe
+</a>
+
+<a href="{% url 'login' %}" class="block w-full text-center border-1.5 border-stone-200 bg-white hover:border-emerald-600 hover:text-emerald-700 transition rounded-xl mt-4 py-3.5 font-medium">
+  Réessayer la connexion
+</a>
+{% endblock %}

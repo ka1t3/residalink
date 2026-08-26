@@ -4,12 +4,15 @@ from django.contrib import messages
 from django.contrib.auth import login, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth.models import Group
 from django.core.mail import EmailMessage
-from django.http import HttpResponse
-from django.shortcuts import redirect, render
+from django.db import transaction
+from django.http import Http404, HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 from .forms import JoinForm, ProfileForm
+from .models import User
 from .search import search_all
 
 
@@ -25,7 +28,11 @@ def join(request):
         return redirect("home")
     form = JoinForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
-        user = form.save()
+        with transaction.atomic():
+            premier = not User.objects.filter(residence=form.residence).exists()
+            user = form.save()
+            if premier:
+                Group.objects.get_or_create(name="conseil_syndical")[0].user_set.add(user)
         login(request, user)
         messages.success(request, f"Bienvenue dans la résidence {user.residence.name} !")
         return redirect("home")
@@ -102,3 +109,50 @@ def search(request):
     results = search_all(request.user, query) if query else {}
     total = sum(len(v) for v in results.values())
     return render(request, "core/search.html", {"query": query, "results": results, "total": total})
+
+
+def _residence_members(request):
+    """Utilisateurs de LA résidence de request.user — jamais d'une autre résidence."""
+    if not request.user.residence_id:
+        raise Http404()
+    return User.objects.filter(residence_id=request.user.residence_id)
+
+
+@login_required
+def members_list(request):
+    if not request.user.is_council:
+        raise Http404()
+    council_group, _ = Group.objects.get_or_create(name="conseil_syndical")
+    members = _residence_members(request).order_by("display_name", "username")
+    council_ids = set(members.filter(groups=council_group).values_list("id", flat=True))
+    return render(request, "core/members_list.html", {
+        "members": members,
+        "council_ids": council_ids,
+    })
+
+
+@login_required
+@require_POST
+def member_toggle_council(request, pk):
+    if not request.user.is_council:
+        raise Http404()
+    residence_members = _residence_members(request)
+    member = get_object_or_404(residence_members, pk=pk)
+    council_group, _ = Group.objects.get_or_create(name="conseil_syndical")
+
+    with transaction.atomic():
+        is_member = member.groups.filter(pk=council_group.pk).exists()
+        if is_member:
+            council_count = residence_members.filter(groups=council_group).count()
+            if council_count <= 1:
+                messages.error(
+                    request,
+                    "Impossible de retirer le dernier membre du conseil syndical de la résidence.",
+                )
+                return redirect("members_list")
+            council_group.user_set.remove(member)
+            messages.success(request, f"{member.public_name} a été retiré du conseil syndical.")
+        else:
+            council_group.user_set.add(member)
+            messages.success(request, f"{member.public_name} a été nommé au conseil syndical.")
+    return redirect("members_list")

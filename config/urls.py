@@ -18,6 +18,8 @@ urlpatterns = [
     path("connexion/", auth_views.LoginView.as_view(template_name="core/login.html"), name="login"),
     path("deconnexion/", auth_views.LogoutView.as_view(), name="logout"),
     path("profil/", core.profile, name="profile"),
+    path("membres/", core.members_list, name="members_list"),
+    path("membres/<int:pk>/conseil/", core.member_toggle_council, name="member_toggle_council"),
     path("recherche/", core.search, name="search"),
     path("profil/mot-de-passe/", core.password_change, name="password_change"),
     path("mot-de-passe-oublie/", auth_views.PasswordResetView.as_view(

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Page introuvable{% endblock %}
+{% block content %}
+<div class="text-center py-16">
+  <div class="w-16 h-16 rounded-full bg-stone-100 flex items-center justify-center mx-auto mb-5">
+    <i data-lucide="search-x" class="w-8 h-8 text-stone-400"></i>
+  </div>
+  <h1 class="text-2xl font-bold tracking-tight mb-2">Page introuvable</h1>
+  <p class="text-stone-500 mb-6">Cette page n'existe pas, plus, ou vous n'y avez pas accès.</p>
+  <a href="{% url 'home' %}" class="inline-flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 transition text-white rounded-xl py-3 px-6 font-semibold shadow-sm shadow-emerald-900/20">
+    <i data-lucide="house" class="w-4 h-4"></i>
+    Retour à l'accueil
+  </a>
+</div>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Membres{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold tracking-tight mb-1 flex items-center gap-2">
+  <i data-lucide="users" class="w-6 h-6 text-emerald-700"></i>
+  Membres de la résidence
+</h1>
+<p class="text-sm text-stone-500 mb-5">Gérez qui fait partie du conseil syndical.</p>
+
+<div class="space-y-3">
+  {% for member in members %}
+  <div class="bg-white rounded-2xl border border-stone-200/70 shadow-sm p-4 flex items-center justify-between gap-3">
+    <div class="min-w-0">
+      <p class="font-semibold truncate">{{ member.public_name }}</p>
+      {% if member.pk in council_ids %}
+      <span class="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 mt-1">
+        <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+        Conseil syndical
+      </span>
+      {% else %}
+      <span class="inline-block text-xs font-semibold px-3 py-1 rounded-full bg-stone-200 text-stone-600 mt-1">Copropriétaire</span>
+      {% endif %}
+    </div>
+    <form method="post" action="{% url 'member_toggle_council' member.pk %}" class="shrink-0">
+      {% csrf_token %}
+      {% if member.pk in council_ids %}
+      <button class="flex items-center gap-1.5 border-2 border-stone-200 bg-white hover:border-red-400 hover:text-red-600 transition rounded-xl py-2 px-3 text-sm font-medium">
+        <i data-lucide="user-minus" class="w-4 h-4"></i>
+        Retirer
+      </button>
+      {% else %}
+      <button class="flex items-center gap-1.5 border-2 border-stone-200 bg-white hover:border-emerald-600 hover:text-emerald-700 transition rounded-xl py-2 px-3 text-sm font-medium">
+        <i data-lucide="user-plus" class="w-4 h-4"></i>
+        Nommer au conseil
+      </button>
+      {% endif %}
+    </form>
+  </div>
+  {% empty %}
+  <p class="text-stone-500 text-sm">Aucun membre trouvé.</p>
+  {% endfor %}
+</div>
+{% endblock %}

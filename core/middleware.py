@@ -1,7 +1,58 @@
+from django.contrib import messages
 from django.http import Http404
+from django.shortcuts import redirect
+from django.urls import Resolver404, resolve, reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from .models import ResidenceModule
 
 MODULE_PREFIXES = {"/incidents/": "incidents", "/mur/": "wall", "/carnet/": "directory"}
+
+SAFE_METHODS = ("GET", "HEAD", "OPTIONS", "TRACE")
+
+
+class DemoReadOnlyMiddleware:
+    """Passe en lecture seule tout compte de démonstration (`user.is_demo`).
+
+    Bloque toute requête de méthode non sûre (POST/PUT/PATCH/DELETE) — sauf la
+    déconnexion — sans jamais modifier les vues existantes : la sécurité tient
+    entièrement dans ce middleware, pas dans un patch des vues.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # AnonymousUser n'a pas d'attribut `is_demo` : getattr avec défaut
+        # évite un crash pour tout visiteur non connecté.
+        if request.method not in SAFE_METHODS and getattr(request.user, "is_demo", False):
+            # On identifie la vue de déconnexion par son nom de route (résolu
+            # depuis le chemin), jamais par une comparaison de chemin en dur :
+            # une route renommée ou déplacée ne casserait pas silencieusement
+            # l'exception.
+            try:
+                url_name = resolve(request.path).url_name
+            except Resolver404:
+                url_name = None
+            if url_name != "logout":
+                messages.warning(
+                    request,
+                    "Mode démonstration : les modifications sont désactivées.",
+                )
+                return redirect(self._safe_referer(request))
+        return self.get_response(request)
+
+    @staticmethod
+    def _safe_referer(request):
+        referer = request.META.get("HTTP_REFERER")
+        # HTTP_REFERER est fourni par le client : ne jamais y rediriger sans
+        # validation, sous peine d'open redirect.
+        if referer and url_has_allowed_host_and_scheme(
+            referer,
+            allowed_hosts={request.get_host()},
+            require_https=request.is_secure(),
+        ):
+            return referer
+        return reverse("home")
 
 
 class ModuleGateMiddleware:

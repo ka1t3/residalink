@@ -34,6 +34,11 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    # Doit venir après MessageMiddleware : ce middleware appelle
+    # `messages.warning()`, qui nécessite que `request._messages` soit déjà
+    # initialisé. Doit aussi venir après AuthenticationMiddleware pour
+    # disposer de `request.user`.
+    "core.middleware.DemoReadOnlyMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "core.middleware.ModuleGateMiddleware",
     "core.middleware.SecurityHeadersMiddleware",

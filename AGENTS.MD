@@ -33,6 +33,18 @@ uv run manage.py bootstrap                 # crée résidence de démo + catégo
 - **Multi-tenant** : base partagée, **`residence_id` sur toutes les tables métier**. Toute requête métier doit être bornée à la résidence de l'utilisateur.
 - **Activation par module** : table `ResidenceModule (residence, module, enabled)`. Une page de module doit vérifier que le module est actif pour la résidence.
 - **Rôle métier `conseil_syndical`** = **groupe Django**, exposé par la propriété `User.is_council`. **Distinct de l'admin Django.** Les membres du CS agissent **depuis l'app** (changer le statut d'un incident, épingler un post, éditer le carnet), **sans** accès à l'admin. L'admin Django ne sert qu'à l'opérateur (créer une résidence, promouvoir un membre CS, activer des modules, gérer les catégories).
+- **Premier inscrit = conseil syndical.** Dans la vue `join`, si la résidence
+  ne comptait **aucun** utilisateur avant celui-ci, le nouvel inscrit est ajouté
+  au groupe `conseil_syndical`. La condition porte sur l'absence totale
+  d'utilisateur, **jamais** sur l'absence de membre du CS (sinon le départ du
+  dernier CS ferait hériter les droits au prochain venu). Conséquence
+  opérationnelle : le code d'invitation d'une résidence neuve part au **seul**
+  référent identifié.
+- **`is_council` renvoie `True` si `is_staff`.** Ne jamais compter les membres
+  du CS via `is_council` : utiliser
+  `filter(residence=…, groups__name="conseil_syndical")`. Sinon la présence
+  d'un superuser fausse le décompte et laisse retirer le dernier vrai CS.
+- Pas de `core/urls.py` : toutes les routes de `core` sont dans `config/urls.py`.
 
 ## Conventions de code
 
@@ -53,6 +65,12 @@ uv run manage.py bootstrap                 # crée résidence de démo + catégo
 - **CSP** : sources externes **autorisées** = `cdn.tailwindcss.com`, `unpkg.com` (`script-src`), `fonts.googleapis.com` (`style-src`), `fonts.gstatic.com` (`font-src`), et `img-src 'self' data: blob:`.
   → **Toute nouvelle ressource externe (CDN, image distante, script) DOIT être ajoutée à la CSP**, sinon elle est bloquée **en production** (souvent invisible en local). Préférer **héberger en local** dans `/static` plutôt qu'ajouter un CDN.
 - **Jamais de secret dans le code ni committé.** Les secrets vivent en **variables d'environnement Coolify** : `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`, `SITE_URL`, `DATABASE_URL`, `MEDIA_ROOT`, `EMAIL_HOST/PORT/USER/PASSWORD`, `DEFAULT_FROM_EMAIL`, `SIGNUP_NOTIFY_EMAIL`. Dans un README/doc, ne mettre que les **noms**, jamais les valeurs.
+- **E-mails sortants** : toujours `From = DEFAULT_FROM_EMAIL`, adresse du
+  visiteur en `reply_to`. Jamais l'adresse du visiteur en `From` (rejet Brevo
+  / SPF-DKIM → spam).
+- **403 vs 404** : la page Membres renvoie `Http404` à un non-CS (ne pas
+  confirmer l'existence de la ressource). `directory` renvoie encore `403` —
+  divergence connue et assumée, à ne pas « harmoniser » au détour d'une PR.
 
 ## Médias / photos (fragile — suivre exactement)
 
@@ -97,6 +115,27 @@ Ce pipeline a déjà causé des pertes de fichiers. Règles impératives :
   ```
 - Après une suppression de photo, **vérifier le disque** (`ls media/...`) que le fichier a bien disparu.
 
+## Mode démonstration
+
+- Résidence et compte identifiés par `is_demo`. Accès par `/demo/`, sans
+  inscription. Le compte démo est membre du CS (pour voir les écrans), mais
+  ne peut rien modifier.
+- `DemoReadOnlyMiddleware` (`core/middleware.py`) **bloque par défaut** toute
+  méthode non sûre pour un utilisateur `is_demo`. Toute action légitime en
+  session démo doit être ajoutée **explicitement** à
+  `DEMO_ALLOWED_ROUTE_NAMES`, **par nom de route** (jamais par chemin en dur).
+  → Piège vécu deux fois : un nouveau formulaire public est bloqué
+  silencieusement en session démo. Le penser à chaque ajout.
+- Utiliser `getattr(request.user, "is_demo", False)` : `AnonymousUser` n'a pas
+  cet attribut.
+- Ne jamais rediriger sur `HTTP_REFERER` sans `url_has_allowed_host_and_scheme`
+  (open redirect).
+- `reset_demo` : supprimer les photos **objet par objet AVANT** de supprimer la
+  `Residence`. La cascade Django peut emprunter un chemin *fast delete* qui
+  n'émet pas `post_delete` → fichiers orphelins accumulés à chaque reset.
+  Vérification : deux `reset_demo` consécutifs doivent laisser le **même**
+  nombre de fichiers dans `media/`.
+
 ## À NE PAS faire
 
 - ❌ Utiliser `pip` (toujours `uv`).
@@ -107,3 +146,5 @@ Ce pipeline a déjà causé des pertes de fichiers. Règles impératives :
 - ❌ Afficher du contenu utilisateur sans `render_md` (risque XSS).
 - ❌ Donner accès à l'admin Django au conseil syndical (le CS agit depuis l'app).
 - ❌ Committer un secret ou écrire une valeur secrète dans un fichier.
+- ❌ Ajouter un formulaire public sans vérifier qu'il fonctionne en session démo.
+- ❌ Compter les membres du CS via `is_council`.

@@ -1,7 +1,7 @@
 import os
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import login, update_session_auth_hash
+from django.contrib.auth import login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.models import Group
@@ -25,7 +25,14 @@ def service_worker(request):
 
 def join(request):
     if request.user.is_authenticated:
-        return redirect("home")
+        if request.user.is_demo:
+            # Un visiteur en session démo n'a pas de « vrai » compte à
+            # protéger : on le déconnecte pour lui laisser rejoindre sa
+            # résidence avec un code, plutôt que de le renvoyer dans la démo.
+            logout(request)
+            messages.info(request, "Vous avez quitté la démonstration.")
+        else:
+            return redirect("home")
     form = JoinForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         with transaction.atomic():
@@ -39,17 +46,48 @@ def join(request):
     return render(request, "core/join.html", {"form": form})
 
 
-def home(request):
-    if not request.user.is_authenticated:
-        return render(request, "landing.html")
+def _dashboard_redirect(user):
+    """Redirige vers le premier module activé de la résidence de `user`."""
     from .models import ResidenceModule
     mods = set(ResidenceModule.objects.filter(
-        residence_id=request.user.residence_id, enabled=True
+        residence_id=user.residence_id, enabled=True
     ).values_list("module", flat=True))
     if "wall" in mods: return redirect("post_list")
     if "incidents" in mods: return redirect("incident_list")
     if "directory" in mods: return redirect("directory_home")
     return redirect("profile")
+
+
+def demo(request):
+    """Connecte le visiteur au compte de démonstration (lecture seule).
+
+    - Un utilisateur déjà connecté et non-démo n'est jamais déconnecté.
+    - Si la résidence de démonstration n'existe pas (pas encore de
+      `reset_demo`), on redirige sans planter.
+    """
+    if request.user.is_authenticated:
+        if not request.user.is_demo:
+            messages.info(
+                request,
+                "Vous êtes déjà connecté à votre compte : impossible de "
+                "basculer sur la démonstration sans vous déconnecter.",
+            )
+            return redirect("home")
+        return _dashboard_redirect(request.user)
+
+    demo_user = User.objects.filter(is_demo=True, residence__is_demo=True).select_related("residence").first()
+    if demo_user is None:
+        messages.error(request, "La démonstration n'est pas disponible pour le moment.")
+        return redirect("home")
+
+    login(request, demo_user)
+    return _dashboard_redirect(demo_user)
+
+
+def home(request):
+    if not request.user.is_authenticated or request.GET.get("creer"):
+        return render(request, "landing.html")
+    return _dashboard_redirect(request.user)
 
 
 @require_POST

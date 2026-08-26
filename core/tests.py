@@ -84,3 +84,31 @@ class MembersCouncilTests(TestCase):
         second = User.objects.get(email="second@example.com")
         resp = self.client.post(reverse("member_toggle_council", args=[second.pk]))
         self.assertEqual(resp.status_code, 404)
+
+
+class JoinDemoFlowTests(TestCase):
+    """Un visiteur en session démo doit pouvoir rejoindre une vraie résidence
+    avec un code, plutôt que d'être renvoyé dans la démonstration."""
+
+    def setUp(self):
+        self.demo_residence = Residence.objects.create(name="Résidence Démo", is_demo=True)
+        self.demo_user = User.objects.create_user(
+            username="demo", password="x", is_demo=True,
+            residence=self.demo_residence, display_name="Démo",
+        )
+        self.real_residence = Residence.objects.create(name="Les Tilleuls")
+
+    def test_visiteur_demo_est_deconnecte_et_voit_le_formulaire(self):
+        self.client.force_login(self.demo_user)
+        resp = self.client.get(reverse("join"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertTemplateUsed(resp, "core/join.html")
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_utilisateur_reel_deja_connecte_est_renvoye_vers_son_espace(self):
+        real_user = User.objects.create_user(
+            username="reel", password="x", residence=self.real_residence, display_name="Réel",
+        )
+        self.client.force_login(real_user)
+        resp = self.client.get(reverse("join"))
+        self.assertRedirects(resp, reverse("home"), fetch_redirect_response=False)

@@ -14,6 +14,7 @@ class Residence(models.Model):
     address = models.CharField("Adresse", max_length=255, blank=True)
     invite_code = models.CharField("Code d'invitation", max_length=12, unique=True, default=make_invite_code)
     created_at = models.DateTimeField(auto_now_add=True)
+    is_demo = models.BooleanField("Résidence de démonstration", default=False)
 
     class Meta:
         verbose_name = "Résidence"
@@ -30,6 +31,7 @@ class User(AbstractUser):
     notify_incidents = models.BooleanField("Incidents (nouveaux et suivis)", default=True)
     notify_alerts = models.BooleanField("Alertes de la résidence", default=True)
     notify_replies = models.BooleanField("Réponses à mes messages", default=True)
+    is_demo = models.BooleanField("Compte de démonstration", default=False)
 
     class Meta:
         verbose_name = "Utilisateur"

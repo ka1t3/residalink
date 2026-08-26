@@ -289,6 +289,12 @@ tailwind.config = { theme: { extend: {
   {% else %}
   <form id="signup-form" method="post" action="{% url 'residence_request' %}" class="bg-white rounded-2xl border border-neutral-200 shadow-sm p-6 md:p-8 space-y-5">
     {% csrf_token %}
+    <input type="hidden" name="ts" value="{{ ts }}">
+    <!-- Honeypot : champ invisible destiné aux bots (jamais rempli par un humain) -->
+    <div class="hidden" aria-hidden="true">
+      <label for="f-website">Ne pas remplir</label>
+      <input id="f-website" name="website" type="text" tabindex="-1" autocomplete="off">
+    </div>
     {% if request.GET.erreur %}<p class="text-sm text-red-600 -mt-1">Merci de remplir au moins le nom, l'e-mail et l'adresse.</p>{% endif %}
     <div>
       <label for="f-name" class="block text-sm font-medium mb-1.5">Votre nom</label>

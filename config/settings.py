@@ -57,6 +57,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "core.context_processors.active_modules",
+                "core.context_processors.donate_url",
             ],
         },
     },
@@ -115,6 +116,9 @@ DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "Ma Résidence <no-rep
 SIGNUP_NOTIFY_EMAIL = os.environ.get("SIGNUP_NOTIFY_EMAIL", DEFAULT_FROM_EMAIL)
 
 SITE_URL = os.environ.get("SITE_URL", "http://localhost:8000")
+
+# URL externe de don (lien "Offrir un café" sur la landing). Vide = lien masqué.
+DONATE_URL = os.environ.get("DONATE_URL", "")
 
 X_FRAME_OPTIONS = "DENY"
 SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"

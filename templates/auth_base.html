@@ -15,7 +15,7 @@
 
   <style>
     body { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
-    .field input, .field select {
+    .field input, .field select, .field textarea {
       width: 100%;
       border: 1.5px solid #e5e5e5;
       border-radius: 0.75rem;
@@ -24,7 +24,7 @@
       background: #fafafa;
       transition: border-color .15s, background .15s, box-shadow .15s;
     }
-    .field input:focus, .field select:focus {
+    .field input:focus, .field select:focus, .field textarea:focus {
       outline: none;
       border-color: #059669;
       background: #fff;
@@ -40,9 +40,9 @@
       <p class="text-lg font-semibold tracking-tight">🏠 Ma Résidence</p>
     </div>
     <div class="relative z-10 max-w-md">
-      <h2 class="text-4xl font-bold leading-tight tracking-tight">La vie de votre immeuble,<br>enfin au même endroit.</h2>
+      <h2 class="text-4xl font-bold leading-tight tracking-tight">La vie de votre résidence,<br>enfin au même endroit.</h2>
       <ul class="mt-8 space-y-4 text-emerald-100">
-        <li class="flex gap-3"><span class="mt-0.5">🔧</span><span>Suivez les incidents de l'immeuble, du signalement à la résolution.</span></li>
+        <li class="flex gap-3"><span class="mt-0.5">🔧</span><span>Suivez les incidents de la résidence, du signalement à la résolution.</span></li>
         <li class="flex gap-3"><span class="mt-0.5">💬</span><span>Échangez entre voisins sans groupe WhatsApp désordonné.</span></li>
         <li class="flex gap-3"><span class="mt-0.5">📒</span><span>Retrouvez les contacts utiles et la mémoire de la résidence.</span></li>
       </ul>
@@ -84,7 +84,7 @@
         <p class="mt-8 text-center text-xs text-neutral-500">
           <a href="{% url 'privacy' %}" class="underline hover:text-neutral-800">Confidentialité</a> ·
           <a href="{% url 'terms' %}" class="underline hover:text-neutral-800">Mentions légales</a> ·
-          <a href="mailto:residalink.vitamins791@passmail.net" class="underline hover:text-neutral-800">Contact</a>
+          <a href="{% url 'contact' %}" class="underline hover:text-neutral-800">Contact</a>
         </p>
         <script>
           if('serviceWorker' in navigator){

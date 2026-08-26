@@ -1,11 +1,16 @@
 import os
+import time
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.models import Group
+from django.core import signing
+from django.core.exceptions import ValidationError
 from django.core.mail import EmailMessage
+from django.core.validators import validate_email
 from django.db import transaction
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -21,6 +26,11 @@ def service_worker(request):
         resp = HttpResponse(f.read(), content_type="application/javascript")
     resp["Service-Worker-Allowed"] = "/"
     return resp
+
+
+def favicon(request):
+    with open(os.path.join(settings.BASE_DIR, "static", "favicon.ico"), "rb") as f:
+        return HttpResponse(f.read(), content_type="image/x-icon")
 
 
 def join(request):
@@ -85,7 +95,14 @@ def demo(request):
 
 
 def home(request):
-    if not request.user.is_authenticated or request.GET.get("creer"):
+    # `creer` : lien "Créer ma résidence" du bandeau démo, avec ancre #creer.
+    # `accueil` : bouton "Retour à l'accueil", pour qu'un visiteur en session
+    # démo puisse revoir la landing page sans quitter sa session démo.
+    if (
+        not request.user.is_authenticated
+        or request.GET.get("creer")
+        or request.GET.get("accueil")
+    ):
         return render(request, "landing.html")
     return _dashboard_redirect(request.user)
 
@@ -118,6 +135,69 @@ def residence_request(request):
     ).send(fail_silently=False)
 
     return redirect(f"{reverse('home')}?envoye=1#creer")
+
+
+def _contact_ts():
+    return signing.TimestampSigner().sign(str(int(time.time())))
+
+
+def contact(request):
+    """Formulaire de contact public. Aucun stockage en base : le message est
+    envoyé par e-mail puis oublié. Anti-spam : honeypot + délai minimal de
+    3 secondes (horodatage signé)."""
+    nom = request.POST.get("name", "").strip()
+    email = request.POST.get("email", "").strip()
+    message = request.POST.get("message", "").strip()
+    erreurs = []
+
+    if request.method == "POST":
+        if not request.POST.get("website", "").strip():
+            try:
+                ts = int(signing.TimestampSigner().unsign(request.POST.get("ts", "")))
+            except (signing.BadSignature, ValueError, TypeError):
+                ts = None
+            if ts is not None and int(time.time()) - ts >= 3:
+                if not nom:
+                    erreurs.append("Le nom est obligatoire.")
+                if not email:
+                    erreurs.append("L'e-mail est obligatoire.")
+                else:
+                    try:
+                        validate_email(email)
+                    except ValidationError:
+                        erreurs.append("Cette adresse e-mail n'est pas valide.")
+                if not message:
+                    erreurs.append("Le message est obligatoire.")
+                if not erreurs:
+                    corps = (
+                        "Nouveau message de contact\n\n"
+                        f"Nom : {nom}\n"
+                        f"E-mail : {email}\n"
+                        f"Message : {message}\n"
+                    )
+                    try:
+                        EmailMessage(
+                            subject=f"[Residalink] Message de contact — {nom}",
+                            body=corps,
+                            from_email=settings.DEFAULT_FROM_EMAIL,
+                            to=[getattr(settings, "SIGNUP_NOTIFY_EMAIL", settings.DEFAULT_FROM_EMAIL)],
+                            reply_to=[email],
+                        ).send(fail_silently=False)
+                    except Exception:
+                        erreurs.append("L'envoi du message a échoué. Merci de réessayer dans quelques instants.")
+                    else:
+                        messages.success(request, "Message envoyé, merci ! Nous vous répondrons rapidement.")
+                        return redirect("contact")
+        if not erreurs:
+            return redirect("contact")
+
+    return render(request, "core/contact.html", {
+        "nom": nom,
+        "email": email,
+        "message": message,
+        "erreurs": erreurs,
+        "ts": _contact_ts(),
+    })
 
 
 @login_required

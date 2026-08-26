@@ -1,0 +1,36 @@
+{% extends "auth_base.html" %}
+{% block title %}Contact — Ma Résidence{% endblock %}
+{% block content %}
+<h1 class="text-3xl font-bold tracking-tight">Contact</h1>
+<p class="text-stone-500 mt-2 mb-8">Une question, une suggestion ? Écrivez-nous, nous vous répondrons.</p>
+
+{% if erreurs %}
+<div class="mb-5 rounded-xl bg-red-50 border border-red-200 text-red-900 px-4 py-3 text-sm space-y-1">
+  {% for erreur in erreurs %}
+  <p>{{ erreur }}</p>
+  {% endfor %}
+</div>
+{% endif %}
+
+<form method="post" class="space-y-5">
+  {% csrf_token %}
+  <div class="field">
+    <label for="id-name" class="block text-sm font-medium mb-1.5">Votre nom</label>
+    <input id="id-name" name="name" type="text" required autocomplete="name" value="{{ nom }}">
+  </div>
+  <div class="field">
+    <label for="id-email" class="block text-sm font-medium mb-1.5">Votre e-mail</label>
+    <input id="id-email" name="email" type="email" required autocomplete="email" value="{{ email }}">
+  </div>
+  <div class="field">
+    <label for="id-message" class="block text-sm font-medium mb-1.5">Votre message</label>
+    <textarea id="id-message" name="message" rows="5" required>{{ message }}</textarea>
+  </div>
+  <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"
+         style="position:absolute;left:-9999px;top:0">
+  <input type="hidden" name="ts" value="{{ ts }}">
+  <button type="submit" class="w-full bg-emerald-700 hover:bg-emerald-800 active:scale-[0.99] transition text-white rounded-xl py-3.5 font-semibold text-base shadow-sm shadow-emerald-900/20">
+    Envoyer le message
+  </button>
+</form>
+{% endblock %}

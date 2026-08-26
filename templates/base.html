@@ -42,10 +42,16 @@
         <i data-lucide="info" class="text-emerald-700 shrink-0"></i>
         <p class="text-sm text-stone-700">Vous explorez une résidence de démonstration.</p>
       </div>
-      <a href="{% url 'home' %}?creer=1#creer"
-         class="bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl px-4 py-2 text-sm font-semibold whitespace-nowrap">
-        Créer ma résidence
-      </a>
+      <div class="flex items-center gap-2">
+        <a href="{% url 'home' %}?accueil=1"
+           class="border-1.5 border-stone-200 bg-white hover:border-emerald-600 hover:text-emerald-700 transition rounded-xl px-4 py-2 text-sm font-semibold whitespace-nowrap">
+          Retour à l'accueil
+        </a>
+        <a href="{% url 'home' %}?creer=1#creer"
+           class="bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl px-4 py-2 text-sm font-semibold whitespace-nowrap">
+          Créer ma résidence
+        </a>
+      </div>
     </div>
   </div>
   {% endif %}
@@ -101,7 +107,7 @@
     <div class="flex flex-wrap justify-center gap-x-5 gap-y-2">
       <a href="{% url 'privacy' %}" class="hover:text-neutral-900 underline">Confidentialité</a>
       <a href="{% url 'terms' %}" class="hover:text-neutral-900 underline">Mentions légales</a>
-      <a href="mailto:residalink.vitamins791@passmail.net class="hover:text-neutral-900 underline">Contact</a>
+      <a href="{% url 'contact' %}" class="hover:text-neutral-900 underline">Contact</a>
     </div>
   </footer>
 

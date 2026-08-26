@@ -1,3 +1,5 @@
+from django.conf import settings
+
 from .models import ResidenceModule
 
 
@@ -7,3 +9,7 @@ def active_modules(request):
         return {"active_modules": []}
     mods = ResidenceModule.objects.filter(residence_id=user.residence_id, enabled=True).values_list("module", flat=True)
     return {"active_modules": list(mods)}
+
+
+def donate_url(request):
+    return {"donate_url": settings.DONATE_URL}

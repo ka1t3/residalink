@@ -9,6 +9,17 @@ MODULE_PREFIXES = {"/incidents/": "incidents", "/mur/": "wall", "/carnet/": "dir
 
 SAFE_METHODS = ("GET", "HEAD", "OPTIONS", "TRACE")
 
+# Routes dont le POST est autorisé en session démo, par nom de route.
+# Tout nouveau formulaire public doit être ajouté ici, sinon il est bloqué
+# silencieusement pour un visiteur en session démo.
+# `login` est inclus : un visiteur en démo qui choisit de se connecter avec un
+# vrai compte doit pouvoir soumettre le formulaire. Ce n'est pas une brèche du
+# mode lecture seule : `django.contrib.auth.login()` détecte que l'identifiant
+# en session diffère du nouvel utilisateur et purge la session (`session.flush()`)
+# avant d'authentifier le nouveau compte — la session démo ne survit jamais à
+# une connexion réussie.
+DEMO_ALLOWED_ROUTE_NAMES = {"logout", "login", "residence_request", "contact"}
+
 
 class DemoReadOnlyMiddleware:
     """Passe en lecture seule tout compte de démonstration (`user.is_demo`).
@@ -33,7 +44,7 @@ class DemoReadOnlyMiddleware:
                 url_name = resolve(request.path).url_name
             except Resolver404:
                 url_name = None
-            if url_name != "logout":
+            if url_name not in DEMO_ALLOWED_ROUTE_NAMES:
                 messages.warning(
                     request,
                     "Mode démonstration : les modifications sont désactivées.",

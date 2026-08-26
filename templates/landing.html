@@ -59,6 +59,18 @@ tailwind.config = { theme: { extend: {
 
 <main id="top">
 
+{% if messages %}
+<div class="max-w-6xl mx-auto px-5 pt-6">
+  {% for message in messages %}
+  {% if message.tags == 'error' %}
+  <div class="rounded-xl bg-red-50 border border-red-200 text-red-900 px-4 py-3 text-sm shadow-sm">{{ message }}</div>
+  {% else %}
+  <div class="rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 px-4 py-3 text-sm shadow-sm">{{ message }}</div>
+  {% endif %}
+  {% endfor %}
+</div>
+{% endif %}
+
 <!-- Hero -->
 <section class="max-w-6xl mx-auto px-5 pt-16 pb-14 md:pt-24 md:pb-20 grid md:grid-cols-2 gap-12 md:gap-8 items-center">
   <div>

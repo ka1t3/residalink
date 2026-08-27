@@ -60,3 +60,8 @@ urlpatterns = [
 urlpatterns += [
     re_path(r"^media/(?P<path>.*)$", serve, {"document_root": settings.MEDIA_ROOT}),
 ]
+
+# Handler d'erreur 500 en production (page polie + e-mail à l'opérateur, 1 e-mail
+# maximum par heure par signature d'erreur). En DEBUG (développement), Django
+# affiche sa page technique avant même de résoudre ce handler.
+handler500 = core.handler500

@@ -69,6 +69,26 @@ class PublicRequestCooldown(models.Model):
         return f"{self.key} · {self.ip} · {self.last_at:%d/%m %H:%M}"
 
 
+class NotifiedError(models.Model):
+    """Déduplication des e-mails d'erreur 500.
+
+    Une même signature d'erreur ne génère qu'un e-mail par heure ; les
+    occurrences entre deux e-mails sont comptées (`count`). Les entrées
+    obsolètes (> 7 jours) sont purgées à chaque écriture (pas de cron).
+    """
+
+    signature = models.CharField("Signature", max_length=32, unique=True)
+    last_notified_at = models.DateTimeField("Dernière notification")
+    count = models.PositiveIntegerField("Occurrences", default=1)
+
+    class Meta:
+        verbose_name = "Erreur 500 notifiée"
+        verbose_name_plural = "Erreurs 500 notifiées"
+
+    def __str__(self):
+        return f"{self.signature} · {self.count}× · {self.last_notified_at:%d/%m %H:%M}"
+
+
 class ResidenceModule(models.Model):
     MODULES = [
         ("incidents", "Centre d'incidents"),

@@ -376,3 +376,51 @@ class ResidenceRequestThrottleTests(TestCase):
         resp = self._post()
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(len(mail.outbox), 1)
+
+
+class OpenRegistrationTests(TestCase):
+    """Mode résidence unique (OPEN_REGISTRATION=False) : parcours SaaS masqué."""
+
+    @override_settings(OPEN_REGISTRATION=True)
+    def test_saaS_default_landing_avec_formulaire(self):
+        resp = self.client.get(reverse("home"))
+        self.assertContains(resp, "Créer l'espace de ma résidence")
+        self.assertContains(resp, 'name="ts"')
+
+    @override_settings(OPEN_REGISTRATION=False)
+    def test_landing_sans_formulaire_avec_cta_rejoindre(self):
+        resp = self.client.get(reverse("home"))
+        self.assertNotContains(resp, "Créer l'espace de ma résidence")
+        self.assertNotContains(resp, 'name="ts"')
+        self.assertContains(resp, "/rejoindre/")
+
+    @override_settings(OPEN_REGISTRATION=False)
+    def test_demande_residence_404_get(self):
+        resp = self.client.get(reverse("residence_request"))
+        self.assertEqual(resp.status_code, 404)
+
+    @override_settings(OPEN_REGISTRATION=False)
+    def test_demande_residence_404_post(self):
+        resp = self.client.post(reverse("residence_request"), {
+            "name": "X", "email": "x@x.com", "address": "y", "ts": "", "website": "",
+        })
+        self.assertEqual(resp.status_code, 404)
+        self.assertEqual(len(mail.outbox), 0)
+
+    @override_settings(OPEN_REGISTRATION=False)
+    def test_rejoindre_toujours_functionnel(self):
+        residence = Residence.objects.create(name="Les Tilleuls")
+        resp = self.client.post(reverse("join"), {
+            "invite_code": residence.invite_code,
+            "display_name": "Test",
+            "email": "test@example.com",
+            "password1": "un-mot-de-passe-solide-123",
+            "password2": "un-mot-de-passe-solide-123",
+        })
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(User.objects.count(), 1)
+
+    @override_settings(OPEN_REGISTRATION=False)
+    def test_pages_contact_confidentialite_ok(self):
+        for name in ("contact", "privacy", "terms", "login"):
+            self.assertEqual(self.client.get(reverse(name)).status_code, 200)

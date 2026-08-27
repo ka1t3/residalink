@@ -13,3 +13,7 @@ def active_modules(request):
 
 def donate_url(request):
     return {"donate_url": settings.DONATE_URL}
+
+
+def open_registration(request):
+    return {"open_registration": settings.OPEN_REGISTRATION}

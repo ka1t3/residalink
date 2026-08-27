@@ -13,7 +13,7 @@ from django.core.exceptions import ValidationError
 from django.core.mail import EmailMessage
 from django.core.validators import validate_email
 from django.db import transaction
-from django.http import Http404, HttpResponse
+from django.http import Http404, HttpResponse, HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -130,14 +130,20 @@ def _endpoint_allowed(key, request, seconds=3600):
     return True
 
 
-@require_POST
 def residence_request(request):
     """Formulaire public de création de résidence.
+
+    En mode résidence unique (OPEN_REGISTRATION=False) : la route n'existe pas
+    (404, sans jamais confirmer son existence), quelle que soit la méthode.
 
     Anti-spam : honeypot + délai minimal signé (comme /contact/) +
     limitation 1 demande / IP / heure (stockée en base).
     Un bot est accepté silencieusement (aucune erreur confirmée).
     """
+    if not settings.OPEN_REGISTRATION:
+        raise Http404
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
     name = request.POST.get("name", "").strip()
     email = request.POST.get("email", "").strip()
     address = request.POST.get("address", "").strip()

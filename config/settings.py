@@ -60,6 +60,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "core.context_processors.active_modules",
                 "core.context_processors.donate_url",
+                "core.context_processors.open_registration",
             ],
         },
     },
@@ -133,6 +134,14 @@ AXES_RESET_COOL_OFF_ON_FAILURE_DURING_LOCKOUT = False
 # Template affiché quand le compte est verrouillé
 AXES_LOCKOUT_TEMPLATE = "core/axes_lockout.html"
 AXES_HTTP_RESPONSE_CODE = 429
+
+# ---------------------------------------------------------------------------
+# Mode résidence unique
+# ---------------------------------------------------------------------------
+# Si False : le parcours SaaS « créer une résidence » est masqué — la landing
+# pointe vers /rejoindre/, /demande-residence/ renvoie 404.
+# Par défaut True (mode SaaS multi-résidences).
+OPEN_REGISTRATION = os.environ.get("OPEN_REGISTRATION", "1") == "1"
 
 # URL externe de don (lien "Offrir un café" sur la landing). Vide = lien masqué.
 DONATE_URL = os.environ.get("DONATE_URL", "")

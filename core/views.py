@@ -12,8 +12,8 @@ from django.core import signing
 from django.core.exceptions import ValidationError
 from django.core.mail import EmailMessage
 from django.core.validators import validate_email
-from django.db import transaction
-from django.http import Http404, HttpResponse
+from django.db import DatabaseError, connection, transaction
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -33,6 +33,22 @@ def service_worker(request):
 def favicon(request):
     with open(os.path.join(settings.BASE_DIR, "static", "favicon.ico"), "rb") as f:
         return HttpResponse(f.read(), content_type="image/x-icon")
+
+
+def healthz(request):
+    """Endpoint de santé public : 200 si l'application ET la base répondent.
+
+    Pas d'authentification, pas d'information sensible dans la réponse
+    (ni version, ni réglages) : cette route est faite pour être sondée par
+    la supervision (Coolify, Healthchecks.io, uptime).
+    """
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            cursor.fetchone()
+    except DatabaseError:
+        return JsonResponse({"status": "error"}, status=503)
+    return JsonResponse({"status": "ok"})
 
 
 def join(request):

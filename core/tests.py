@@ -376,3 +376,100 @@ class ResidenceRequestThrottleTests(TestCase):
         resp = self._post()
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(len(mail.outbox), 1)
+
+
+class PasswordValidatorTests(TestCase):
+    """Validation des mots de passe : MinimumLengthValidator (8) +
+    CommonPasswordValidator. Les 3 formulaires (inscription, réinitialisation,
+    changement) refusent les mots courants ; create_user (démo, bootstrap)
+    n'est pas concerné."""
+
+    def setUp(self):
+        self.residence = Residence.objects.create(name="Les Chênes")
+
+    def _join(self, email, password1, password2=None):
+        return self.client.post(reverse("join"), {
+            "invite_code": self.residence.invite_code,
+            "display_name": "Test",
+            "email": email,
+            "password1": password1,
+            "password2": password2 or password1,
+        })
+
+    def test_inscription_mot_courant_refusee(self):
+        resp = self._join("pv1@example.com", "motdepasse")
+        self.assertEqual(resp.status_code, 200)  # formulaire re-affiché
+        self.assertContains(resp, "Ce mot de passe est trop courant.")
+        self.assertFalse(User.objects.filter(email="pv1@example.com").exists())
+
+    def test_inscription_12345678_refusee(self):
+        resp = self._join("pv2@example.com", "12345678")
+        self.assertContains(resp, "Ce mot de passe est trop courant.")
+        self.assertFalse(User.objects.filter(email="pv2@example.com").exists())
+
+    def test_inscription_trop_court_refusee(self):
+        resp = self._join("pv3@example.com", "abc123!")
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "trop court")
+        self.assertFalse(User.objects.filter(email="pv3@example.com").exists())
+
+    def test_inscription_mot_memoire_acceptee(self):
+        resp = self._join("pv4@example.com", "ma-residence-bleue-42")
+        self.assertEqual(resp.status_code, 302)
+        self.assertTrue(User.objects.filter(email="pv4@example.com").exists())
+
+    def test_reinitialisation_mot_courant_refuse(self):
+        from django.contrib.auth.tokens import default_token_generator
+        from django.utils.encoding import force_bytes
+        from django.utils.http import urlsafe_base64_encode
+        user = User.objects.create_user(
+            username="pv5@example.com", email="pv5@example.com",
+            password="ancien-mot-de-passe-solide-9",
+            residence=self.residence, display_name="R",
+        )
+        uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+        url = reverse("password_reset_confirm", args=[uidb64, token])
+        # Django 6 : le token est stocké en session, la vue redirige vers
+        # l'URL avec reset_url_token (set-password) ; on suit la redirection.
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 302)
+        set_password_url = resp.headers["Location"]
+        resp = self.client.post(set_password_url, {
+            "new_password1": "motdepasse",
+            "new_password2": "motdepasse",
+        })
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Ce mot de passe est trop courant.")
+        user.refresh_from_db()
+        self.assertTrue(user.check_password("ancien-mot-de-passe-solide-9"))
+
+    def test_changement_mdp_mot_courant_refuse(self):
+        user = User.objects.create_user(
+            username="pv6@example.com", email="pv6@example.com",
+            password="ancien-mot-de-passe-solide-9",
+            residence=self.residence, display_name="P",
+        )
+        self.client.force_login(user)
+        resp = self.client.post(reverse("password_change"), {
+            "old_password": "ancien-mot-de-passe-solide-9",
+            "new_password1": "motdepasse",
+            "new_password2": "motdepasse",
+        })
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Ce mot de passe est trop courant.")
+        user.refresh_from_db()
+        self.assertTrue(user.check_password("ancien-mot-de-passe-solide-9"))
+
+    def test_create_user_pas_valide_par_les_validateurs(self):
+        # create_user (bootstrap, admin) et set_unusable_password (démo) ne
+        # passent pas par les validateurs : un mot « faible » peut être posé
+        # par l'opérateur sans blocage.
+        u = User.objects.create_user(
+            username="pv7@example.com", email="pv7@example.com",
+            password="password", residence=self.residence, display_name="A",
+        )
+        self.assertIsNotNone(u.pk)
+        u.set_unusable_password()
+        u.save()
+        self.assertFalse(u.has_usable_password())

@@ -15,9 +15,9 @@ from django.core import signing
 from django.core.exceptions import ValidationError
 from django.core.mail import EmailMessage
 from django.core.validators import validate_email
-from django.db import transaction
+from django.db import DatabaseError, connection, transaction
 from django.db.models import F
-from django.http import Http404, HttpResponse
+from django.http import Http404, HttpResponse, HttpResponseNotAllowed, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -37,6 +37,22 @@ def service_worker(request):
 def favicon(request):
     with open(os.path.join(settings.BASE_DIR, "static", "favicon.ico"), "rb") as f:
         return HttpResponse(f.read(), content_type="image/x-icon")
+
+
+def healthz(request):
+    """Endpoint de santé public : 200 si l'application ET la base répondent.
+
+    Pas d'authentification, pas d'information sensible dans la réponse
+    (ni version, ni réglages) : cette route est faite pour être sondée par
+    la supervision (Coolify, Healthchecks.io, uptime).
+    """
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            cursor.fetchone()
+    except DatabaseError:
+        return JsonResponse({"status": "error"}, status=503)
+    return JsonResponse({"status": "ok"})
 
 
 def join(request):
@@ -134,14 +150,20 @@ def _endpoint_allowed(key, request, seconds=3600):
     return True
 
 
-@require_POST
 def residence_request(request):
     """Formulaire public de création de résidence.
+
+    En mode résidence unique (OPEN_REGISTRATION=False) : la route n'existe pas
+    (404, sans jamais confirmer son existence), quelle que soit la méthode.
 
     Anti-spam : honeypot + délai minimal signé (comme /contact/) +
     limitation 1 demande / IP / heure (stockée en base).
     Un bot est accepté silencieusement (aucune erreur confirmée).
     """
+    if not settings.OPEN_REGISTRATION:
+        raise Http404
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
     name = request.POST.get("name", "").strip()
     email = request.POST.get("email", "").strip()
     address = request.POST.get("address", "").strip()

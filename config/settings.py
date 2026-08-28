@@ -86,6 +86,8 @@ LOGOUT_REDIRECT_URL = "login"
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 8}},
+    # Bloque le top-20 000 mots de passe courants (password, 12345678, motdepasse…)
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
 ]
 
 LANGUAGE_CODE = "fr-fr"

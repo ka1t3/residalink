@@ -122,6 +122,10 @@ else:
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "Ma Résidence <no-reply@example.com>")
 SIGNUP_NOTIFY_EMAIL = os.environ.get("SIGNUP_NOTIFY_EMAIL", DEFAULT_FROM_EMAIL)
 
+# Notification des erreurs 500 (production uniquement) : destinataire de
+# l'e-mail d'alerte (défaut : SIGNUP_NOTIFY_EMAIL).
+ERROR_NOTIFY_EMAIL = os.environ.get("ERROR_NOTIFY_EMAIL", SIGNUP_NOTIFY_EMAIL)
+
 # ---------------------------------------------------------------------------
 # django-axes : protection anti force brute sur la connexion
 # ---------------------------------------------------------------------------

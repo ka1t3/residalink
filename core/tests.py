@@ -1,4 +1,5 @@
 import time
+from datetime import timedelta
 from unittest import mock
 
 from django.conf import settings
@@ -6,10 +7,12 @@ from django.contrib.auth.models import Group
 from django.contrib.messages import get_messages
 from django.core import mail, signing
 from django.db import OperationalError
-from django.test import TestCase, override_settings
+from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
-from .models import PublicRequestCooldown, Residence, User
+from .models import NotifiedError, PublicRequestCooldown, Residence, User
+from .views import handler500
 
 
 class MembersCouncilTests(TestCase):
@@ -379,6 +382,124 @@ class ResidenceRequestThrottleTests(TestCase):
         self.assertEqual(len(mail.outbox), 1)
 
 
+class Error500NotificationTests(TestCase):
+    """handler500 : page polie + e-mail opérateur, 1 e-mail / heure / signature."""
+
+    def _call_500(self, exc=None, path="/mur/"):
+        """Simule l'appel de handler500 depuis un bloc except (exc_info actif)."""
+        factory = RequestFactory()
+        request = factory.get(path)
+        try:
+            raise exc or ValueError("boom-test")
+        except Exception:
+            return handler500(request)
+
+    def test_500_page_polie_et_email_opérateur(self):
+        resp = self._call_500()
+        self.assertEqual(resp.status_code, 500)
+        # pas de fuite d'info technique dans la page
+        body = resp.content.decode()
+        self.assertIn("Une erreur est survenue", body)  # template core/error500.html
+        self.assertIn("Retour à l'accueil", body)
+        self.assertNotIn("boom-test", body)
+        self.assertNotIn("Traceback", body)
+        # e-mail à l'opérateur
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertIn("Erreur 500", email.subject)
+        self.assertEqual(email.from_email, settings.DEFAULT_FROM_EMAIL)
+        self.assertEqual(email.to, [settings.ERROR_NOTIFY_EMAIL])
+        # contexte dans le corps
+        self.assertIn("boom-test", email.body)
+        self.assertIn("GET", email.body)
+        self.assertIn("anonyme", email.body)
+
+    def test_500_deduplication_meme_signature(self):
+        self._call_500()
+        self._call_500()
+        self.assertEqual(len(mail.outbox), 1)
+        entry = NotifiedError.objects.get()
+        self.assertEqual(entry.count, 2)
+
+    def test_500_nouvelle_signature_notifie_de_nouveau(self):
+        self._call_500(exc=ValueError("boom-A"))
+        self._call_500(exc=RuntimeError("boom-B"))
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertEqual(NotifiedError.objects.count(), 2)
+
+    def test_500_renotification_apres_une_heure(self):
+        self._call_500()
+        NotifiedError.objects.update(
+            last_notified_at=timezone.now() - timedelta(hours=1, minutes=1)
+        )
+        self._call_500()
+        self.assertEqual(len(mail.outbox), 2)
+
+    def test_500_utilisateur_connecte_en_reply_to(self):
+        user = User.objects.create_user(
+            username="test-500", password="x", email="user500@example.com",
+            residence=Residence.objects.create(name="T500"), display_name="T",
+        )
+        factory = RequestFactory()
+        request = factory.get("/")
+        request.user = user
+        try:
+            raise ValueError("boom-auth")
+        except Exception:
+            resp = handler500(request)
+        self.assertEqual(resp.status_code, 500)
+        email = mail.outbox[0]
+        self.assertEqual(email.extra_headers.get("Reply-To"), "user500@example.com")
+
+    def test_500_purge_entrées_obsolètes(self):
+        NotifiedError.objects.create(
+            signature="old", last_notified_at=timezone.now() - timedelta(days=8), count=1,
+        )
+        self._call_500()
+        # l'entrée vieille de 8 jours a été purgée, la nouvelle reste
+        self.assertEqual(NotifiedError.objects.count(), 1)
+        self.assertNotEqual(NotifiedError.objects.get().signature, "old")
+
+    def test_404_ne_notifie_pas(self):
+        resp = self.client.get("/une-route-inexistante/")
+        self.assertEqual(resp.status_code, 404)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_wiring_resolver_500_pointeur_handler(self):
+        """Django 6 résout le handler 500 depuis le module urlconf (config/urls.py),
+        pas depuis un réglage HANDLERS. On vérifie que le pointeur est bien notre vue."""
+        from django.urls import get_resolver
+        callback = get_resolver().resolve_error_handler(500)
+        self.assertIs(callback, handler500)
+
+    @override_settings(DEBUG=False)
+    def test_500_e2e_exposition_complete(self):
+        """Exception réelle levée dans une vue, stack complète (middleware →
+        resolve_error_handler → handler500), DEBUG=False.
+
+        Vérifie : 500 + page polie + e-mail opérateur + pas de fuite d'info.
+        """
+        from django.urls import path
+        from django.test import Client
+        import config.urls as urls
+
+        def boom(request):
+            raise ValueError("explosion-e2e")
+
+        urls.urlpatterns.append(path("e2e-boom/", boom))
+        try:
+            client = Client(raise_request_exception=False)
+            resp = client.get("/e2e-boom/")
+        finally:
+            urls.urlpatterns.pop()
+
+        self.assertEqual(resp.status_code, 500)
+        body = resp.content.decode()
+        self.assertIn("Une erreur est survenue", body)
+        self.assertNotIn("explosion-e2e", body)   # pas de fuite dans la page
+        self.assertNotIn("Traceback", body)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("explosion-e2e", mail.outbox[0].body)  # traceback dans l'e-mail
 class OpenRegistrationTests(TestCase):
     """Mode résidence unique (OPEN_REGISTRATION=False) : parcours SaaS masqué."""
 

@@ -1,0 +1,24 @@
+{% extends "auth_base.html" %}
+{% block title %}Erreur — Ma Résidence{% endblock %}
+{% block content %}
+<div class="bg-white border-1.5 border-stone-200 rounded-2xl p-8 shadow-sm">
+  <div class="w-14 h-14 rounded-full bg-stone-100 flex items-center justify-center mx-auto mb-5">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="text-stone-400"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+  </div>
+  <h1 class="text-2xl font-bold tracking-tight text-center">Une erreur est survenue</h1>
+  <p class="text-stone-500 text-center mt-2 mb-8">
+    L'équipe de la résidence a été prévenue.
+    Merci de réessayer dans quelques minutes.
+  </p>
+
+  <a href="{% url 'home' %}"
+     class="block w-full text-center bg-emerald-700 hover:bg-emerald-800 transition text-white rounded-xl py-3.5 font-semibold text-base shadow-sm shadow-emerald-900/20">
+    Retour à l'accueil
+  </a>
+
+  <button type="button" onclick="location.reload()"
+          class="block w-full mt-4 text-center border-1.5 border-stone-200 bg-white hover:border-emerald-600 hover:text-emerald-700 transition rounded-xl py-3.5 font-medium">
+    Actualiser la page
+  </button>
+</div>
+{% endblock %}

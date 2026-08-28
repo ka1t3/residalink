@@ -1,5 +1,8 @@
+import hashlib
 import os
+import sys
 import time
+import traceback
 from datetime import timedelta
 
 from django.conf import settings
@@ -12,14 +15,15 @@ from django.core import signing
 from django.core.exceptions import ValidationError
 from django.core.mail import EmailMessage
 from django.core.validators import validate_email
-from django.db import transaction
-from django.http import Http404, HttpResponse
+from django.db import DatabaseError, connection, transaction
+from django.db.models import F
+from django.http import Http404, HttpResponse, HttpResponseNotAllowed, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from .forms import JoinForm, ProfileForm
-from .models import PublicRequestCooldown, User
+from .models import NotifiedError, PublicRequestCooldown, User
 from .search import search_all
 
 
@@ -33,6 +37,22 @@ def service_worker(request):
 def favicon(request):
     with open(os.path.join(settings.BASE_DIR, "static", "favicon.ico"), "rb") as f:
         return HttpResponse(f.read(), content_type="image/x-icon")
+
+
+def healthz(request):
+    """Endpoint de santé public : 200 si l'application ET la base répondent.
+
+    Pas d'authentification, pas d'information sensible dans la réponse
+    (ni version, ni réglages) : cette route est faite pour être sondée par
+    la supervision (Coolify, Healthchecks.io, uptime).
+    """
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            cursor.fetchone()
+    except DatabaseError:
+        return JsonResponse({"status": "error"}, status=503)
+    return JsonResponse({"status": "ok"})
 
 
 def join(request):
@@ -130,14 +150,20 @@ def _endpoint_allowed(key, request, seconds=3600):
     return True
 
 
-@require_POST
 def residence_request(request):
     """Formulaire public de création de résidence.
+
+    En mode résidence unique (OPEN_REGISTRATION=False) : la route n'existe pas
+    (404, sans jamais confirmer son existence), quelle que soit la méthode.
 
     Anti-spam : honeypot + délai minimal signé (comme /contact/) +
     limitation 1 demande / IP / heure (stockée en base).
     Un bot est accepté silencieusement (aucune erreur confirmée).
     """
+    if not settings.OPEN_REGISTRATION:
+        raise Http404
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
     name = request.POST.get("name", "").strip()
     email = request.POST.get("email", "").strip()
     address = request.POST.get("address", "").strip()
@@ -320,3 +346,83 @@ def member_toggle_council(request, pk):
             council_group.user_set.add(member)
             messages.success(request, f"{member.public_name} a été nommé au conseil syndical.")
     return redirect("members_list")
+
+
+
+def handler500(request):
+    """Erreur 500 en production : page polie pour le résident + e-mail
+    à l'opérateur (1 e-mail maximum par heure par signature d'erreur).
+
+    Référencé dans settings.HANDLERS lorsque DEBUG=False ; en dev,
+    Django conserve sa page technique.
+    """
+    exc_type, exc_value, exc_tb = sys.exc_info()
+    signature = _error_signature(exc_type, exc_value, exc_tb)
+    now = timezone.now()
+    notified = False
+    if signature:
+        entry = NotifiedError.objects.filter(signature=signature).first()
+        if entry is None:
+            NotifiedError.objects.create(signature=signature, last_notified_at=now, count=1)
+            notified = True
+        elif now - entry.last_notified_at >= timedelta(hours=1):
+            entry.count = F("count") + 1
+            entry.last_notified_at = now
+            entry.save()
+            notified = True
+        else:
+            NotifiedError.objects.filter(pk=entry.pk).update(count=F("count") + 1)
+        # Purge les entrées obsolètes (> 7 jours)
+        NotifiedError.objects.filter(
+            last_notified_at__lt=now - timedelta(days=7)
+        ).delete()
+    if notified:
+        _notify_operator_500(request, signature, exc_type, exc_value, exc_tb)
+    return render(request, "core/error500.html", status=500)
+
+
+def _error_signature(exc_type, exc_value, exc_tb):
+    """Signature stable d'une erreur (16 octets hexa : SHA-256 de la classe
+    d'exception + 1re ligne de traceback)."""
+    if exc_type is None:
+        return ""
+    lines = [l.strip() for l in traceback.format_exception(exc_type, exc_value, exc_tb) if l.strip()]
+    first = next((l for l in lines if not l.startswith("Traceback")), "")
+    return hashlib.sha256(f"{exc_type.__name__}|{first}".encode("utf-8")).hexdigest()[:16]
+
+
+def _notify_operator_500(request, signature, exc_type, exc_value, exc_tb):
+    """E-mail à l'opérateur avec le contexte de l'erreur.
+
+    From = DEFAULT_FROM_EMAIL (jamais l'adresse du visiteur en From — SPF/DKIM).
+    Reply-To = adresse du visiteur (si connecté).
+    Body = chemin, méthode, user, UA, traceback.
+    """
+    user = getattr(request, "user", None)
+    is_auth = user is not None and user.is_authenticated
+    username = getattr(user, "public_name", None) if is_auth else "anonyme"
+    user_email = getattr(user, "email", None) if is_auth else None
+    now = timezone.now()
+    headers = {}
+    if user_email:
+        headers["Reply-To"] = user_email
+    corps = (
+        f"Erreur 500 détectée sur le site\n"
+        f"\n"
+        f"Signature : {signature}\n"
+        f"Horodatage : {now:%d/%m/%Y %H:%M:%S %Z}\n"
+        f"Chemin : {request.build_absolute_uri()}\n"
+        f"Méthode : {request.method}\n"
+        f"Utilisateur : {username}\n"
+        f"User-Agent : {request.META.get('HTTP_USER_AGENT', 'inconnu')[:200]}\n"
+        f"\n"
+        f"Traceback :\n"
+        + "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
+    )
+    EmailMessage(
+        subject=f"[Residalink] Erreur 500 — {request.path}",
+        body=corps,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[settings.ERROR_NOTIFY_EMAIL],
+        headers=headers,
+    ).send(fail_silently=True)

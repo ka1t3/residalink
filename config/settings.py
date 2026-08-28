@@ -60,6 +60,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "core.context_processors.active_modules",
                 "core.context_processors.donate_url",
+                "core.context_processors.open_registration",
             ],
         },
     },
@@ -123,6 +124,10 @@ else:
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "Ma Résidence <no-reply@example.com>")
 SIGNUP_NOTIFY_EMAIL = os.environ.get("SIGNUP_NOTIFY_EMAIL", DEFAULT_FROM_EMAIL)
 
+# Notification des erreurs 500 (production uniquement) : destinataire de
+# l'e-mail d'alerte (défaut : SIGNUP_NOTIFY_EMAIL).
+ERROR_NOTIFY_EMAIL = os.environ.get("ERROR_NOTIFY_EMAIL", SIGNUP_NOTIFY_EMAIL)
+
 # ---------------------------------------------------------------------------
 # django-axes : protection anti force brute sur la connexion
 # ---------------------------------------------------------------------------
@@ -135,6 +140,14 @@ AXES_RESET_COOL_OFF_ON_FAILURE_DURING_LOCKOUT = False
 # Template affiché quand le compte est verrouillé
 AXES_LOCKOUT_TEMPLATE = "core/axes_lockout.html"
 AXES_HTTP_RESPONSE_CODE = 429
+
+# ---------------------------------------------------------------------------
+# Mode résidence unique
+# ---------------------------------------------------------------------------
+# Si False : le parcours SaaS « créer une résidence » est masqué — la landing
+# pointe vers /rejoindre/, /demande-residence/ renvoie 404.
+# Par défaut True (mode SaaS multi-résidences).
+OPEN_REGISTRATION = os.environ.get("OPEN_REGISTRATION", "1") == "1"
 
 # URL externe de don (lien "Offrir un café" sur la landing). Vide = lien masqué.
 DONATE_URL = os.environ.get("DONATE_URL", "")

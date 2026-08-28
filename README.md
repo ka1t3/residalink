@@ -74,6 +74,8 @@ Le `Dockerfile` collecte les fichiers statiques au build, puis exécute `migrate
 | `EMAIL_HOST_USER` | Identifiant SMTP |
 | `EMAIL_HOST_PASSWORD` | Mot de passe / clé SMTP |
 | `DEFAULT_FROM_EMAIL` | Expéditeur affiché dans les notifications |
+| `SIGNUP_NOTIFY_EMAIL` | Destinataire des notifications de nouveaux résidents (défaut : `DEFAULT_FROM_EMAIL`) |
+| `ERROR_NOTIFY_EMAIL` | Destinataire des alertes d'erreur 500 (défaut : `SIGNUP_NOTIFY_EMAIL`) |
 | `MEDIA_ROOT` | Chemin de stockage des fichiers uploadés (ex. `/data/media`) |
 | `DONATE_URL` | URL externe du lien de don « Offrir un café » sur la landing (vide = lien masqué) |
 

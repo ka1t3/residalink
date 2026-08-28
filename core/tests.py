@@ -1,14 +1,18 @@
 import time
+from datetime import timedelta
 from unittest import mock
 
 from django.conf import settings
 from django.contrib.auth.models import Group
 from django.contrib.messages import get_messages
 from django.core import mail, signing
-from django.test import TestCase, override_settings
+from django.db import OperationalError
+from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
-from .models import PublicRequestCooldown, Residence, User
+from .models import NotifiedError, PublicRequestCooldown, Residence, User
+from .views import handler500
 
 
 class MembersCouncilTests(TestCase):
@@ -473,3 +477,187 @@ class PasswordValidatorTests(TestCase):
         u.set_unusable_password()
         u.save()
         self.assertFalse(u.has_usable_password())
+class Error500NotificationTests(TestCase):
+    """handler500 : page polie + e-mail opérateur, 1 e-mail / heure / signature."""
+
+    def _call_500(self, exc=None, path="/mur/"):
+        """Simule l'appel de handler500 depuis un bloc except (exc_info actif)."""
+        factory = RequestFactory()
+        request = factory.get(path)
+        try:
+            raise exc or ValueError("boom-test")
+        except Exception:
+            return handler500(request)
+
+    def test_500_page_polie_et_email_opérateur(self):
+        resp = self._call_500()
+        self.assertEqual(resp.status_code, 500)
+        # pas de fuite d'info technique dans la page
+        body = resp.content.decode()
+        self.assertIn("Une erreur est survenue", body)  # template core/error500.html
+        self.assertIn("Retour à l'accueil", body)
+        self.assertNotIn("boom-test", body)
+        self.assertNotIn("Traceback", body)
+        # e-mail à l'opérateur
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertIn("Erreur 500", email.subject)
+        self.assertEqual(email.from_email, settings.DEFAULT_FROM_EMAIL)
+        self.assertEqual(email.to, [settings.ERROR_NOTIFY_EMAIL])
+        # contexte dans le corps
+        self.assertIn("boom-test", email.body)
+        self.assertIn("GET", email.body)
+        self.assertIn("anonyme", email.body)
+
+    def test_500_deduplication_meme_signature(self):
+        self._call_500()
+        self._call_500()
+        self.assertEqual(len(mail.outbox), 1)
+        entry = NotifiedError.objects.get()
+        self.assertEqual(entry.count, 2)
+
+    def test_500_nouvelle_signature_notifie_de_nouveau(self):
+        self._call_500(exc=ValueError("boom-A"))
+        self._call_500(exc=RuntimeError("boom-B"))
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertEqual(NotifiedError.objects.count(), 2)
+
+    def test_500_renotification_apres_une_heure(self):
+        self._call_500()
+        NotifiedError.objects.update(
+            last_notified_at=timezone.now() - timedelta(hours=1, minutes=1)
+        )
+        self._call_500()
+        self.assertEqual(len(mail.outbox), 2)
+
+    def test_500_utilisateur_connecte_en_reply_to(self):
+        user = User.objects.create_user(
+            username="test-500", password="x", email="user500@example.com",
+            residence=Residence.objects.create(name="T500"), display_name="T",
+        )
+        factory = RequestFactory()
+        request = factory.get("/")
+        request.user = user
+        try:
+            raise ValueError("boom-auth")
+        except Exception:
+            resp = handler500(request)
+        self.assertEqual(resp.status_code, 500)
+        email = mail.outbox[0]
+        self.assertEqual(email.extra_headers.get("Reply-To"), "user500@example.com")
+
+    def test_500_purge_entrées_obsolètes(self):
+        NotifiedError.objects.create(
+            signature="old", last_notified_at=timezone.now() - timedelta(days=8), count=1,
+        )
+        self._call_500()
+        # l'entrée vieille de 8 jours a été purgée, la nouvelle reste
+        self.assertEqual(NotifiedError.objects.count(), 1)
+        self.assertNotEqual(NotifiedError.objects.get().signature, "old")
+
+    def test_404_ne_notifie_pas(self):
+        resp = self.client.get("/une-route-inexistante/")
+        self.assertEqual(resp.status_code, 404)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_wiring_resolver_500_pointeur_handler(self):
+        """Django 6 résout le handler 500 depuis le module urlconf (config/urls.py),
+        pas depuis un réglage HANDLERS. On vérifie que le pointeur est bien notre vue."""
+        from django.urls import get_resolver
+        callback = get_resolver().resolve_error_handler(500)
+        self.assertIs(callback, handler500)
+
+    @override_settings(DEBUG=False)
+    def test_500_e2e_exposition_complete(self):
+        """Exception réelle levée dans une vue, stack complète (middleware →
+        resolve_error_handler → handler500), DEBUG=False.
+
+        Vérifie : 500 + page polie + e-mail opérateur + pas de fuite d'info.
+        """
+        from django.urls import path
+        from django.test import Client
+        import config.urls as urls
+
+        def boom(request):
+            raise ValueError("explosion-e2e")
+
+        urls.urlpatterns.append(path("e2e-boom/", boom))
+        try:
+            client = Client(raise_request_exception=False)
+            resp = client.get("/e2e-boom/")
+        finally:
+            urls.urlpatterns.pop()
+
+        self.assertEqual(resp.status_code, 500)
+        body = resp.content.decode()
+        self.assertIn("Une erreur est survenue", body)
+        self.assertNotIn("explosion-e2e", body)   # pas de fuite dans la page
+        self.assertNotIn("Traceback", body)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("explosion-e2e", mail.outbox[0].body)  # traceback dans l'e-mail
+class OpenRegistrationTests(TestCase):
+    """Mode résidence unique (OPEN_REGISTRATION=False) : parcours SaaS masqué."""
+
+    @override_settings(OPEN_REGISTRATION=True)
+    def test_saaS_default_landing_avec_formulaire(self):
+        resp = self.client.get(reverse("home"))
+        self.assertContains(resp, "Créer l'espace de ma résidence")
+        self.assertContains(resp, 'name="ts"')
+
+    @override_settings(OPEN_REGISTRATION=False)
+    def test_landing_sans_formulaire_avec_cta_rejoindre(self):
+        resp = self.client.get(reverse("home"))
+        self.assertNotContains(resp, "Créer l'espace de ma résidence")
+        self.assertNotContains(resp, 'name="ts"')
+        self.assertContains(resp, "/rejoindre/")
+
+    @override_settings(OPEN_REGISTRATION=False)
+    def test_demande_residence_404_get(self):
+        resp = self.client.get(reverse("residence_request"))
+        self.assertEqual(resp.status_code, 404)
+
+    @override_settings(OPEN_REGISTRATION=False)
+    def test_demande_residence_404_post(self):
+        resp = self.client.post(reverse("residence_request"), {
+            "name": "X", "email": "x@x.com", "address": "y", "ts": "", "website": "",
+        })
+        self.assertEqual(resp.status_code, 404)
+        self.assertEqual(len(mail.outbox), 0)
+
+    @override_settings(OPEN_REGISTRATION=False)
+    def test_rejoindre_toujours_functionnel(self):
+        residence = Residence.objects.create(name="Les Tilleuls")
+        resp = self.client.post(reverse("join"), {
+            "invite_code": residence.invite_code,
+            "display_name": "Test",
+            "email": "test@example.com",
+            "password1": "un-mot-de-passe-solide-123",
+            "password2": "un-mot-de-passe-solide-123",
+        })
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(User.objects.count(), 1)
+
+    @override_settings(OPEN_REGISTRATION=False)
+    def test_pages_contact_confidentialite_ok(self):
+        for name in ("contact", "privacy", "terms", "login"):
+            self.assertEqual(self.client.get(reverse(name)).status_code, 200)
+class HealthzTests(TestCase):
+    """Endpoint de santé /healthz : vérifie la base, répond sans info sensible."""
+
+    def test_healthz_ok(self):
+        resp = self.client.get(reverse("healthz"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json(), {"status": "ok"})
+
+    def test_healthz_db_down(self):
+        with mock.patch(
+            "django.db.connection.cursor", side_effect=OperationalError("db down")
+        ):
+            resp = self.client.get(reverse("healthz"))
+        self.assertEqual(resp.status_code, 503)
+        self.assertEqual(resp.json(), {"status": "error"})
+
+    def test_healthz_pas_de_fuite_d_info(self):
+        resp = self.client.get(reverse("healthz"))
+        self.assertNotIn("django", resp.content.decode().lower())
+        self.assertNotIn("secret", resp.content.decode().lower())

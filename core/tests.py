@@ -5,6 +5,7 @@ from django.conf import settings
 from django.contrib.auth.models import Group
 from django.contrib.messages import get_messages
 from django.core import mail, signing
+from django.db import OperationalError
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
@@ -424,3 +425,23 @@ class OpenRegistrationTests(TestCase):
     def test_pages_contact_confidentialite_ok(self):
         for name in ("contact", "privacy", "terms", "login"):
             self.assertEqual(self.client.get(reverse(name)).status_code, 200)
+class HealthzTests(TestCase):
+    """Endpoint de santé /healthz : vérifie la base, répond sans info sensible."""
+
+    def test_healthz_ok(self):
+        resp = self.client.get(reverse("healthz"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json(), {"status": "ok"})
+
+    def test_healthz_db_down(self):
+        with mock.patch(
+            "django.db.connection.cursor", side_effect=OperationalError("db down")
+        ):
+            resp = self.client.get(reverse("healthz"))
+        self.assertEqual(resp.status_code, 503)
+        self.assertEqual(resp.json(), {"status": "error"})
+
+    def test_healthz_pas_de_fuite_d_info(self):
+        resp = self.client.get(reverse("healthz"))
+        self.assertNotIn("django", resp.content.decode().lower())
+        self.assertNotIn("secret", resp.content.decode().lower())

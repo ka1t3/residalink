@@ -17,6 +17,7 @@ urlpatterns = [
     path("contact/", core.contact, name="contact"),
     path("sw.js", core.service_worker, name="sw"),
     path("favicon.ico", core.favicon, name="favicon"),
+    path("healthz", core.healthz, name="healthz"),
     path("rejoindre/", core.join, name="join"),
     path("connexion/", auth_views.LoginView.as_view(template_name="core/login.html"), name="login"),
     path("deconnexion/", auth_views.LogoutView.as_view(), name="logout"),

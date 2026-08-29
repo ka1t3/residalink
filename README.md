@@ -4,9 +4,9 @@
 
 # Residalink
 
-**La vie de votre immeuble, enfin au clair.**
+**La vie de votre immeuble/copro/résidence, enfin au clair.**
 
-Residalink est un outil **100 % gratuit et open source** pour gérer le quotidien d'une copropriété — signaler et suivre les incidents, échanger entre voisins, et garder la mémoire de la résidence. Il vient **en complément du syndic** : pas de comptabilité, pas de juridique, pas d'assemblées générales. Juste ce qui rend la vie d'un immeuble plus simple, au jour le jour.
+Residalink est un outil **100 % gratuit et open source** pour gérer le quotidien d'une copropriété, signaler et suivre les incidents, échanger entre voisins, et garder la mémoire de la résidence. Il vient **en complément du syndic** : pas de comptabilité, pas de juridique, pas d'assemblées générales. Juste ce qui rend la vie d'un immeuble plus simple, au jour le jour.
 
 Il est pensé pour des résidents **peu à l'aise avec l'informatique** : la simplicité prime toujours sur la richesse fonctionnelle.
 
@@ -32,7 +32,7 @@ Annonces, entraide, petits événements : les messages qui comptent restent **vi
 
 Contacts utiles, infos pratiques, travaux en cours : tout est **rangé au même endroit** et reste accessible, même quand les voisins changent.
 
-Et aussi : **recherche globale**, **notifications e-mail** désactivables, **application installable** (PWA) sur l'écran d'accueil, rôle **conseil syndical** pour la gestion, **mode démonstration** en lecture seule (`/demo/`) — le tout dans une interface sobre et responsive.
+Et aussi : **recherche globale**, **notifications e-mail** désactivables, **application installable** (PWA) sur l'écran d'accueil, rôle **conseil syndical** pour la gestion, **mode démonstration** en lecture seule (`/demo/`), le tout dans une interface sobre et responsive.
 
 ---
 

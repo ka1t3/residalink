@@ -264,10 +264,12 @@ tailwind.config = { theme: { extend: {
       </li>
     </ul>
     {% if donate_url %}
-    <a href="{{ donate_url }}" target="_blank" rel="noopener noreferrer" class="mt-6 inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-600 transition">
-      <i data-lucide="coffee" class="w-4 h-4"></i>
-      Offrir un café
-    </a>
+    <div class="mt-8 text-center">
+      <a href="{{ donate_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-yellow-400 hover:bg-yellow-500 text-neutral-900 font-bold text-base shadow-sm transition">
+        <i data-lucide="coffee" class="w-5 h-5"></i>
+        Offrir un café
+      </a>
+    </div>
     {% endif %}
   </div>
 </section>

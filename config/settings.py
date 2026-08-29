@@ -149,8 +149,11 @@ AXES_HTTP_RESPONSE_CODE = 429
 # Par défaut True (mode SaaS multi-résidences).
 OPEN_REGISTRATION = os.environ.get("OPEN_REGISTRATION", "1") == "1"
 
+# URL publique de base (utilisée dans les liens des e-mails, ex. https://residalink.com).
+SITE_URL = os.environ.get("SITE_URL", "")
+
 # URL externe de don (lien "Offrir un café" sur la landing). Vide = lien masqué.
-DONATE_URL = os.environ.get("DONATE_URL", "")
+DONATE_URL = os.environ.get("DONATE_URL", "https://liberapay.com/residalink/donate")
 
 X_FRAME_OPTIONS = "DENY"
 SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"

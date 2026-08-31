@@ -40,6 +40,18 @@ uv run manage.py axes_reset                        # débloque un compte verroui
 - **Multi-tenant** : base partagée, **`residence_id` sur toutes les tables métier**. Toute requête métier doit être bornée à la résidence de l'utilisateur.
 - **Activation par module** : table `ResidenceModule (residence, module, enabled)`. Une page de module doit vérifier que le module est actif pour la résidence.
 - **Rôle métier `conseil_syndical`** = **groupe Django**, exposé par la propriété `User.is_council`. **Distinct de l'admin Django.** Les membres du CS agissent **depuis l'app** (changer le statut d'un incident, épingler un post, éditer le carnet), **sans** accès à l'admin. L'admin Django ne sert qu'à l'opérateur (créer une résidence, promouvoir un membre CS, activer des modules, gérer les catégories).
+- **Premier inscrit = conseil syndical.** Dans la vue `join`, si la résidence
+  ne comptait **aucun** utilisateur avant celui-ci, le nouvel inscrit est ajouté
+  au groupe `conseil_syndical`. La condition porte sur l'absence totale
+  d'utilisateur, **jamais** sur l'absence de membre du CS (sinon le départ du
+  dernier CS ferait hériter les droits au prochain venu). Conséquence
+  opérationnelle : le code d'invitation d'une résidence neuve part au **seul**
+  référent identifié.
+- **`is_council` renvoie `True` si `is_staff`.** Ne jamais compter les membres
+  du CS via `is_council` : utiliser
+  `filter(residence=…, groups__name="conseil_syndical")`. Sinon la présence
+  d'un superuser fausse le décompte et laisse retirer le dernier vrai CS.
+- Pas de `core/urls.py` : toutes les routes de `core` sont dans `config/urls.py`.
 
 ## Conventions de code
 
@@ -84,6 +96,14 @@ uv run manage.py test core       # une app seule
   - `DONATE_URL` : lien de don (vide = masqué).
   `OPEN_REGISTRATION` et `DONATE_URL` sont exposés aux templates par `core/context_processors.py` (`open_registration`, `donate_url`) : **tout lien vers l'inscription ou le don doit passer par ces variables de contexte**, jamais en dur.
 - Dans un README/doc, ne mettre que les **noms** des variables, jamais les valeurs.
+- **E-mails sortants** : toujours `From = DEFAULT_FROM_EMAIL`, adresse du
+  visiteur en `reply_to`. Jamais l'adresse du visiteur en `From` (rejet Brevo
+  / SPF-DKIM → spam).
+- **403 vs 404** : la page Membres renvoie `Http404` à un non-CS (ne pas
+  confirmer l'existence de la ressource). `directory` renvoie encore `403` —
+  divergence connue et assumée, à ne pas « harmoniser » au détour d'une PR.
+- Ne jamais rediriger sur `HTTP_REFERER` sans `url_has_allowed_host_and_scheme`
+  (open redirect).
 
 ## Médias / photos (fragile , suivre exactement)
 
@@ -101,6 +121,11 @@ Ce pipeline a déjà causé des pertes de fichiers. Règles impératives :
   for photo in IncidentPhoto.objects.filter(pk__in=ids, incident=incident):
       photo.delete()   # déclenche le signal → supprime le fichier physique
   ```
+- `reset_demo` : supprimer les photos **objet par objet AVANT** de supprimer la
+  `Residence`. La cascade Django peut emprunter un chemin *fast delete* qui
+  n'émet pas `post_delete` → fichiers orphelins accumulés à chaque reset.
+  Vérification : deux `reset_demo` consécutifs doivent laisser le **même**
+  nombre de fichiers dans `media/`.
 - `MEDIA_ROOT=/app/media`, monté sur un **volume persistant Coolify** (sinon les photos disparaissent à chaque redéploiement).
 - Les médias sont servis **en production** par une route `re_path(r"^media/…", serve, {document_root: MEDIA_ROOT})` **inconditionnelle** dans `urls.py` (le `if DEBUG` d'origine ne servait pas `/media` en prod).
 - Sur chaque `<img>` de photo utilisateur, prévoir un `onerror` qui masque proprement l'image si le fichier manque (pas de cadre cassé).
@@ -150,3 +175,5 @@ Ce pipeline a déjà causé des pertes de fichiers. Règles impératives :
 - ❌ Retirer le middleware de lecture seule démo, ou le `backend=` explicite du `login()` de la vue démo.
 - ❌ Coder un lien vers l'inscription ou le don en dur, sans passer par `open_registration` / `donate_url`.
 - ❌ Committer un secret ou écrire une valeur secrète dans un fichier.
+- ❌ Ajouter un formulaire public sans vérifier qu'il fonctionne en session démo.
+- ❌ Compter les membres du CS via `is_council`.

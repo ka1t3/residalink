@@ -6,6 +6,7 @@ valider ou ré-encoder une photo par ses propres moyens : tout passe par
 `prepare_photo` / `save_photos`.
 """
 
+import logging
 import os
 from io import BytesIO
 
@@ -14,6 +15,31 @@ from django.core.files.base import ContentFile
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from .validators import MSG_NOT_AN_IMAGE, validate_photo
+
+logger = logging.getLogger(__name__)
+
+# Nombre maximal de photos qu'un incident ou un post peut avoir. Seule
+# constante à changer si la limite devait un jour évoluer (message d'erreur
+# ci-dessous + core/photos.py::save_photos + incidents/views.py +
+# wall/views.py, qui l'importent tous d'ici).
+PHOTO_LIMIT = 3
+
+# Limite Pillow au nombre de pixels décodés en mémoire (largeur × hauteur),
+# **globale au processus** (pas seulement à ce module). `Image.open()`
+# décompresse l'image entière avant tout traitement : sans cette limite, une
+# image très compressée peut décompresser vers plusieurs dizaines de
+# mégapixels — plusieurs centaines de Mo de RAM — et déclencher l'OOM killer
+# sur un conteneur de production à ressources limitées, surtout avec
+# plusieurs envois simultanés. 50_000_000 px reste largement supérieur à ce
+# qu'exige MAX_DIMENSION=2000 (2000×2000 = 4_000_000 px maximum après
+# redimensionnement, mais l'image *source*, avant redimensionnement, peut
+# être bien plus grande) : au-delà de 2×cette limite, Pillow lève
+# `Image.DecompressionBombError`, déjà capturé dans `validate_photo` et
+# `prepare_photo` et converti en message français. Affecté ici, au premier
+# import de ce module (donc avant tout traitement de photo), pour ne pas
+# entrer en conflit avec la valeur que `pillow_heif` pourrait lire/écrire de
+# son côté.
+Image.MAX_IMAGE_PIXELS = 50_000_000
 
 # Format Pillow (déterminé à l'ouverture du fichier) -> (format de sortie,
 # extension du fichier ré-encodé). C'est cette extension, et non celle du
@@ -96,13 +122,17 @@ def prepare_photo(f):
             save_kwargs = {"quality": 90} if save_format in ("JPEG", "WEBP") else {}
             clean.save(buffer, format=save_format, **save_kwargs)
     except (UnidentifiedImageError, OSError, KeyError, ValueError, Image.DecompressionBombError):
+        # KeyError peut signaler un vrai bug interne (ex. format absent de
+        # _SAVE_FORMAT) plutôt qu'une photo réellement invalide : sans trace,
+        # ce serait indistinguable côté logs d'un simple refus utilisateur.
+        logger.warning("prepare_photo failed for %r", getattr(f, "name", None), exc_info=True)
         raise ValidationError(MSG_NOT_AN_IMAGE.format(name=_name(f)))
 
     buffer.seek(0)
     return ContentFile(buffer.read(), name=f"photo{ext}")
 
 
-def save_photos(instance, files, limit=3):
+def save_photos(instance, files, limit=PHOTO_LIMIT):
     """Valide, traite et enregistre les photos d'un incident ou d'un post.
 
     Comportement « meilleur effort » : chaque fichier est traité
@@ -113,7 +143,8 @@ def save_photos(instance, files, limit=3):
     - `instance` : Incident ou Post (doit avoir un manager lié `photos`).
     - `files` : itérable d'UploadedFile.
     - `limit` : nombre de photos qu'il est encore possible d'enregistrer
-      (les appelants passent `3 - photos.count()` lors d'une modification).
+      (les appelants passent `PHOTO_LIMIT - photos.count()` lors d'une
+      modification).
 
     Retourne (created, erreurs) : nombre de photos créées et liste des
     messages d'erreur en français. Aucun fichier fourni n'est jamais
@@ -130,7 +161,7 @@ def save_photos(instance, files, limit=3):
 
     if limit <= 0:
         erreurs.append(
-            "Vous avez déjà 3 photos. Supprimez-en une avant d'en ajouter une nouvelle."
+            f"Vous avez déjà {PHOTO_LIMIT} photos. Supprimez-en une avant d'en ajouter une nouvelle."
         )
         return created, erreurs
 
@@ -150,8 +181,8 @@ def save_photos(instance, files, limit=3):
     if discarded:
         noms = ", ".join(discarded)
         if len(discarded) == 1:
-            erreurs.append(f"Limite de 3 photos atteinte : « {noms} » n'a pas été ajoutée.")
+            erreurs.append(f"Limite de {PHOTO_LIMIT} photos atteinte : « {noms} » n'a pas été ajoutée.")
         else:
-            erreurs.append(f"Limite de 3 photos atteinte : {noms} n'ont pas été ajoutées.")
+            erreurs.append(f"Limite de {PHOTO_LIMIT} photos atteinte : {noms} n'ont pas été ajoutées.")
 
     return created, erreurs

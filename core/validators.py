@@ -1,7 +1,10 @@
+import logging
 import os
 
 from django.core.exceptions import ValidationError
 from PIL import Image, UnidentifiedImageError
+
+logger = logging.getLogger(__name__)
 
 # Limites imposées aux photos envoyées par les résidents (incidents, mur).
 MAX_UPLOAD_BYTES = 5 * 1024 * 1024
@@ -43,6 +46,10 @@ def validate_photo(f):
             img.verify()
             pillow_format = img.format
     except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError):
+        # Un ValueError peut aussi trahir un bug interne plutôt qu'une photo
+        # invalide : on garde une trace serveur avant de convertir en message
+        # utilisateur générique.
+        logger.warning("validate_photo failed for %r", name, exc_info=True)
         raise ValidationError(MSG_NOT_AN_IMAGE.format(name=name))
     finally:
         f.seek(0)

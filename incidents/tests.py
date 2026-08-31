@@ -41,6 +41,16 @@ def _webp_bytes():
     return buf.getvalue()
 
 
+def _decompression_bomb_png_bytes(size=(12000, 12000)):
+    # Mode "1" (bilevel, 1 bit/pixel) : dépasse largement la limite de pixels
+    # (144 Mpx > 2×50 Mpx) sans allouer plusieurs centaines de Mo pour
+    # construire le fichier de test lui-même.
+    img = Image.new("1", size)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return buf.getvalue()
+
+
 def _gps_jpeg_bytes():
     img = Image.new("RGB", (300, 200), (50, 50, 50))
     exif = Image.Exif()
@@ -110,6 +120,13 @@ class IncidentPhotoPipelineTests(TestCase):
         resp = self._post(grosse)
         self.assertContains(resp, "La photo grosse.jpg est trop volumineuse")
         self.assertContains(resp, "Taille maximale : 5 Mo")
+        self.assertEqual(IncidentPhoto.objects.count(), 0)
+
+    def test_image_decompression_bomb_refusee_sans_objet_cree(self):
+        resp = self._post(SimpleUploadedFile(
+            "bombe.png", _decompression_bomb_png_bytes(), content_type="image/png",
+        ))
+        self.assertContains(resp, "pas pu être lue")
         self.assertEqual(IncidentPhoto.objects.count(), 0)
 
     def test_contenu_non_image_refuse_proprement(self):

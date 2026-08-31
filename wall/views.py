@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 from core.emails import notify
 from core.models import User
-from core.photos import save_photos
+from core.photos import PHOTO_LIMIT, save_photos
 from .models import Comment, Post, PostPhoto, Reaction
 
 
@@ -85,7 +85,7 @@ def post_edit(request, pk):
             del_ids = request.POST.getlist("delete_photos")
             for photo in PostPhoto.objects.filter(pk__in=del_ids, post=post):
                 photo.delete()
-            remaining = 3 - post.photos.count()
+            remaining = PHOTO_LIMIT - post.photos.count()
             _, photo_errors = save_photos(post, request.FILES.getlist("photos"), limit=remaining)
             for error in photo_errors:
                 messages.error(request, error)

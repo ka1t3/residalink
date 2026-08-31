@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from core.emails import notify
 from core.models import User
-from core.photos import save_photos
+from core.photos import PHOTO_LIMIT, save_photos
 from .models import Incident, IncidentCategory, IncidentFollower, IncidentPhoto, IncidentUpdate
 
 
@@ -138,7 +138,7 @@ def incident_edit(request, pk):
         for photo in IncidentPhoto.objects.filter(
                 pk__in=request.POST.getlist("delete_photos"), incident=incident):
             photo.delete()
-        remaining = 3 - incident.photos.count()
+        remaining = PHOTO_LIMIT - incident.photos.count()
         _, photo_errors = save_photos(incident, request.FILES.getlist("photos"), limit=remaining)
         for error in photo_errors:
             messages.error(request, error)

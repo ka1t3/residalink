@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 from core.emails import notify
 from core.models import User
+from core.photos import save_photos
 from .models import Comment, Post, PostPhoto, Reaction
 
 
@@ -32,8 +33,9 @@ def post_create(request):
                 event_date=request.POST.get("event_date") or None,
                 pinned=bool(request.POST.get("pinned")) and request.user.is_council,
             )
-            for f in request.FILES.getlist("photos")[:3]:
-                PostPhoto.objects.create(post=post, image=f)
+            _, photo_errors = save_photos(post, request.FILES.getlist("photos"))
+            for error in photo_errors:
+                messages.error(request, error)
             if post.type == "alerte":
                 residents = User.objects.filter(residence_id=request.user.residence_id).exclude(pk=request.user.pk)
                 notify(residents, f"[{post.residence.name}] Alerte : {post.content[:60]}",
@@ -84,8 +86,9 @@ def post_edit(request, pk):
             for photo in PostPhoto.objects.filter(pk__in=del_ids, post=post):
                 photo.delete()
             remaining = 3 - post.photos.count()
-            for f in request.FILES.getlist("photos")[:max(0, remaining)]:
-                PostPhoto.objects.create(post=post, image=f)
+            _, photo_errors = save_photos(post, request.FILES.getlist("photos"), limit=remaining)
+            for error in photo_errors:
+                messages.error(request, error)
             messages.success(request, "Message modifié")
             return redirect("post_list")
     return render(request, "wall/edit.html", {"post": post, "types": Post.TYPES})

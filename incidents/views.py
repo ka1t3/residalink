@@ -5,6 +5,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from core.emails import notify
 from core.models import User
+from core.photos import save_photos
 from .models import Incident, IncidentCategory, IncidentFollower, IncidentPhoto, IncidentUpdate
 
 
@@ -61,8 +62,9 @@ def incident_new(request):
             description=request.POST.get("description", "").strip(),
             location=request.POST.get("location", "").strip(),
         )
-        for f in request.FILES.getlist("photos")[:3]:
-            IncidentPhoto.objects.create(incident=incident, image=f)
+        _, photo_errors = save_photos(incident, request.FILES.getlist("photos"))
+        for error in photo_errors:
+            messages.error(request, error)
         IncidentUpdate.objects.create(incident=incident, author=request.user, new_status="signale")
         notify(_council_members(request.user.residence_id),
                f"[{request.user.residence.name}] Nouvel incident : {incident.title}",
@@ -136,8 +138,10 @@ def incident_edit(request, pk):
         for photo in IncidentPhoto.objects.filter(
                 pk__in=request.POST.getlist("delete_photos"), incident=incident):
             photo.delete()
-        for f in request.FILES.getlist("photos")[:max(0, 3 - incident.photos.count())]:
-            IncidentPhoto.objects.create(incident=incident, image=f)
+        remaining = 3 - incident.photos.count()
+        _, photo_errors = save_photos(incident, request.FILES.getlist("photos"), limit=remaining)
+        for error in photo_errors:
+            messages.error(request, error)
         messages.success(request, "Incident modifié")
         return redirect("incident_detail", pk=incident.pk)
     return render(request, "incidents/edit.html",

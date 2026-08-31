@@ -4,6 +4,7 @@ import uuid
 from django.conf import settings
 from django.db import models
 from core.models import Residence
+from core.validators import validate_photo
 
 
 def post_photo_upload(instance, filename):
@@ -46,7 +47,7 @@ class Post(models.Model):
 
 class PostPhoto(models.Model):
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="photos")
-    image = models.ImageField(upload_to=post_photo_upload)
+    image = models.ImageField(upload_to=post_photo_upload, validators=[validate_photo])
 
 
 class Comment(models.Model):

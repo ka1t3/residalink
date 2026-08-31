@@ -4,6 +4,7 @@ import uuid
 from django.conf import settings
 from django.db import models
 from core.models import Residence
+from core.validators import validate_photo
 
 
 def incident_photo_upload(instance, filename):
@@ -71,7 +72,7 @@ class Incident(models.Model):
 
 class IncidentPhoto(models.Model):
     incident = models.ForeignKey(Incident, on_delete=models.CASCADE, related_name="photos")
-    image = models.ImageField(upload_to=incident_photo_upload)
+    image = models.ImageField(upload_to=incident_photo_upload, validators=[validate_photo])
 
 
 class IncidentUpdate(models.Model):

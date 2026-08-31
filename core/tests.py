@@ -13,6 +13,8 @@ from django.utils import timezone
 
 from .models import NotifiedError, PublicRequestCooldown, Residence, User
 from .views import handler500
+from incidents.models import Incident, IncidentCategory
+from wall.models import Post
 
 
 class MembersCouncilTests(TestCase):
@@ -661,3 +663,136 @@ class HealthzTests(TestCase):
         resp = self.client.get(reverse("healthz"))
         self.assertNotIn("django", resp.content.decode().lower())
         self.assertNotIn("secret", resp.content.decode().lower())
+
+
+class DemoPerimeterTests(TestCase):
+    """La session démo est bornée : hors de la liste blanche de routes, le
+    visiteur est déconnecté et renvoyé vers la page publique.
+
+    La liste blanche fonctionne par noms de routes (resolve() -> url_name),
+    jamais par comparaison de chemins. L'admin est exclue indépendamment de
+    la liste blanche (piège : resolve('/admin/login/') renvoie url_name='login').
+    """
+
+    def setUp(self):
+        self.demo_residence = Residence.objects.create(name="Résidence Démo", is_demo=True)
+        self.demo_user = User.objects.create_user(
+            username="demo-perimeter", password="x", is_demo=True,
+            residence=self.demo_residence, display_name="Démo",
+        )
+        Group.objects.get_or_create(name="conseil_syndical")[0].user_set.add(self.demo_user)
+        self.category = IncidentCategory.objects.get(name="Ascenseur")
+        self.incident = Incident.objects.create(
+            residence=self.demo_residence, author=self.demo_user,
+            category=self.category, title="Incident démo",
+        )
+        Post.objects.create(
+            residence=self.demo_residence, author=self.demo_user,
+            type="info", content="Message démo",
+        )
+
+    def _login_demo(self):
+        self.client.force_login(self.demo_user)
+
+    def test_pages_du_perimetre_200_et_session_conservee(self):
+        self._login_demo()
+        perimetre = [
+            ("profile", {}), ("search", {}), ("members_list", {}),
+            ("contact", {}), ("privacy", {}), ("terms", {}),
+            ("incident_list", {}), ("incident_new", {}),
+            ("incident_detail", {"pk": self.incident.pk}),
+            ("post_list", {}), ("directory_home", {}),
+        ]
+        for name, kwargs in perimetre:
+            with self.subTest(route=name):
+                resp = self.client.get(reverse(name, kwargs=kwargs))
+                self.assertEqual(resp.status_code, 200)
+                self.assertEqual(int(self.client.session["_auth_user_id"]), self.demo_user.pk)
+
+    def test_home_accueil_du_perimetre_200_et_session_conservee(self):
+        self._login_demo()
+        resp = self.client.get(reverse("home") + "?accueil=1")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(int(self.client.session["_auth_user_id"]), self.demo_user.pk)
+
+    def test_join_page_du_perimetre_affichee_par_la_vue(self):
+        """`join` est dans le périmètre : le middleware ne l'éjecte pas. C'est
+        la vue elle-même qui déconnecte le visiteur démo pour lui laisser
+        rejoindre sa résidence (comportement existant, cf. core/views.py)."""
+        self._login_demo()
+        resp = self.client.get(reverse("join"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertTemplateUsed(resp, "core/join.html")
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_redirections_design_du_perimetre_conservent_la_session(self):
+        """home/demo/login redirigent par conception pour un utilisateur déjà
+        connecté : la session démo doit rester en place (pas d'éjection)."""
+        self._login_demo()
+        for name in ("home", "demo", "login"):
+            with self.subTest(route=name):
+                resp = self.client.get(reverse(name))
+                self.assertIn(resp.status_code, (200, 302))
+                self.assertEqual(int(self.client.session["_auth_user_id"]), self.demo_user.pk)
+
+    def test_admin_inaccessible_en_demo(self):
+        for path in ("/admin/", "/admin/login/"):
+            with self.subTest(path=path):
+                self._login_demo()
+                resp = self.client.get(path)
+                self.assertEqual(resp.status_code, 302)
+                self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_route_hors_perimetre_deconnecte_et_requete_suivante_anonyme(self):
+        self._login_demo()
+        # password_change est une route existante, hors de la liste blanche.
+        resp = self.client.get(reverse("password_change"))
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/", resp.get("Location"))
+        self.assertNotIn("_auth_user_id", self.client.session)
+        # La requête suivante est bien anonyme.
+        resp = self.client.get(reverse("home"))
+        self.assertNotIn("_auth_user_id", self.client.session)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_message_dinformation_posé_lors_de_lejection(self):
+        self._login_demo()
+        resp = self.client.get(reverse("password_change"), follow=True)
+        self.assertContains(resp, "Vous avez quitté la démonstration.")
+
+    def test_media_ne_ferme_pas_la_session(self):
+        self._login_demo()
+        resp = self.client.get("/media/inexistant.jpg")
+        self.assertIn("_auth_user_id", self.client.session)
+        self.assertEqual(resp.status_code, 404)
+
+    def test_utilisateur_normal_jamais_affecte(self):
+        normal = User.objects.create_user(
+            username="normal@example.com", password="x",
+            residence=self.demo_residence, display_name="Normal",
+        )
+        self.client.force_login(normal)
+        resp = self.client.get(reverse("password_change"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(int(self.client.session["_auth_user_id"]), normal.pk)
+
+    def test_cache_control_no_store_sur_page_authentifiee(self):
+        normal = User.objects.create_user(
+            username="cache@example.com", password="x",
+            residence=self.demo_residence, display_name="Cache",
+        )
+        self.client.force_login(normal)
+        resp = self.client.get(reverse("profile"))
+        self.assertEqual(resp["Cache-Control"], "no-store, no-cache, must-revalidate")
+        self.assertEqual(resp["Pragma"], "no-cache")
+
+    def test_pas_de_cache_control_sur_static(self):
+        self._login_demo()
+        resp = self.client.get("/static/manifest.json")
+        self.assertNotIn("Cache-Control", resp)
+
+    def test_pas_de_cache_control_sur_media(self):
+        self._login_demo()
+        resp = self.client.get("/media/inexistant.jpg")
+        self.assertNotIn("Cache-Control", resp)
+

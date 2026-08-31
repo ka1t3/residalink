@@ -10,4 +10,4 @@ RUN uv sync --locked --no-dev
 ENV PATH="/app/.venv/bin:$PATH"
 RUN DEBUG=0 SECRET_KEY=build python manage.py collectstatic --noinput
 EXPOSE 8000
-CMD ["sh", "-c", "python manage.py migrate && gunicorn config.wsgi --bind 0.0.0.0:8000 --workers 2"]
+CMD ["sh", "-c", "python manage.py migrate && gunicorn config.wsgi --bind 0.0.0.0:8000 --workers 2 --timeout 120"]

@@ -25,20 +25,9 @@
   </div>
   {% endif %}
 
-  <div data-photo-uploader>
-    <label for="edit-photos"
-           class="flex items-center gap-3 w-full px-4 py-3 rounded-xl border-2 border-dashed border-neutral-300 text-neutral-500 hover:border-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 cursor-pointer transition">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="shrink-0">
-        <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z"/>
-        <circle cx="12" cy="13" r="3"/>
-        <path d="M19 5v3M20.5 6.5h-3" stroke-width="2"/>
-      </svg>
-      <span class="font-medium">Ajouter des photos</span>
-      <span data-photo-count class="ml-auto text-sm text-emerald-700 font-semibold"></span>
-    </label>
-    <input type="file" name="photos" id="edit-photos" accept="image/*" multiple class="hidden"
-           aria-label="Ajouter une ou plusieurs photos" data-photo-input>
-    <p data-photo-status class="text-sm text-neutral-500 mt-1" aria-live="polite"></p>
+  <div>
+    <p class="block text-sm font-medium mb-1.5">Ajouter des photos</p>
+    {% include "photos/upload.html" %}
   </div>
 
   <div class="flex flex-wrap gap-2 items-center">

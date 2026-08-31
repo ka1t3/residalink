@@ -1,0 +1,17 @@
+{% comment %}Deux boutons d'ajout de photos : « Prendre une photo » (caméra) et « Choisir des photos » (galerie). Les deux alimentent le même champ `photos`. Compteur et redimensionnement gérés par static/js/photo-resize.js.{% endcomment %}
+<div data-photo-uploader>
+  <div class="flex flex-wrap gap-2 mt-3">
+    <label class="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-neutral-300 text-neutral-700 hover:border-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 cursor-pointer transition text-sm font-medium">
+      <i data-lucide="camera" class="w-5 h-5 shrink-0"></i>
+      Prendre une photo
+      <input type="file" name="photos" accept="image/*" capture="environment" class="hidden" data-photo-input>
+    </label>
+    <label class="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-neutral-300 text-neutral-700 hover:border-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 cursor-pointer transition text-sm font-medium">
+      <i data-lucide="images" class="w-5 h-5 shrink-0"></i>
+      Choisir des photos
+      <input type="file" name="photos" accept="image/*" multiple class="hidden" data-photo-input>
+    </label>
+  </div>
+  <p data-photo-count class="text-sm text-emerald-700 font-semibold mt-2"></p>
+  <p data-photo-status class="text-sm text-neutral-500 mt-1" aria-live="polite"></p>
+</div>

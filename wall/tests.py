@@ -1,7 +1,9 @@
 import io
+import shutil
+import tempfile
 
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from PIL import Image
 
@@ -26,8 +28,17 @@ def _heic_bytes():
 
 
 class PostPhotoPipelineTests(TestCase):
+    """Les fichiers écrits par ces tests doivent atterrir dans un dossier
+    temporaire, jamais dans media/ (les lignes en base sont annulées à la fin
+    de chaque test, le signal post_delete ne se déclenche donc pas et les
+    fichiers resteraient orphelins sur disque)."""
 
     def setUp(self):
+        self._media_root = tempfile.mkdtemp(prefix="residalink-test-media-")
+        self._media_override = override_settings(MEDIA_ROOT=self._media_root)
+        self._media_override.enable()
+        self.addCleanup(self._media_override.disable)
+        self.addCleanup(shutil.rmtree, self._media_root, ignore_errors=True)
         self.residence = Residence.objects.create(name="Les Tilleuls")
         self.user = User.objects.create_user(
             username="photo-wall@example.com", password="x",

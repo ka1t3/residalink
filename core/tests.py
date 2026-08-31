@@ -776,15 +776,21 @@ class DemoPerimeterTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(int(self.client.session["_auth_user_id"]), normal.pk)
 
-    def test_cache_control_no_store_sur_page_authentifiee(self):
+    def test_cache_control_no_store_sur_utilisateur_demo(self):
+        self._login_demo()
+        resp = self.client.get(reverse("profile"))
+        self.assertEqual(resp["Cache-Control"], "no-store, no-cache, must-revalidate")
+        self.assertEqual(resp["Pragma"], "no-cache")
+
+    def test_cache_control_absent_sur_utilisateur_normal(self):
         normal = User.objects.create_user(
             username="cache@example.com", password="x",
             residence=self.demo_residence, display_name="Cache",
         )
         self.client.force_login(normal)
         resp = self.client.get(reverse("profile"))
-        self.assertEqual(resp["Cache-Control"], "no-store, no-cache, must-revalidate")
-        self.assertEqual(resp["Pragma"], "no-cache")
+        self.assertNotIn("Cache-Control", resp)
+        self.assertNotIn("Pragma", resp)
 
     def test_pas_de_cache_control_sur_static(self):
         self._login_demo()

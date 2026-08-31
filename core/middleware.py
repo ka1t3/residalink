@@ -157,13 +157,17 @@ class SecurityHeadersMiddleware:
             "frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
         )
         r["Permissions-Policy"] = "geolocation=(), camera=(), microphone=(), payment=(), usb=()"
-        # Pages authentifiées : interdire la restitution depuis le cache du
-        # navigateur (retour arrière / bfcache). Sans ces en-têtes, un retour
-        # arrière peut ressortir une page démo du cache alors que la session
-        # est fermée. On épargne /static/ et /media/ : les assets doivent
-        # rester mis en cache (service worker, performances).
+        # Comptes de démonstration uniquement : interdire la restitution
+        # depuis le cache du navigateur (retour arrière / bfcache). Sans ces
+        # en-têtes, un retour arrière peut ressortir une page démo du cache
+        # alors que la session est fermée. Restreint à `is_demo` (et non à
+        # tout utilisateur authentifié) : les résidents normaux gardent le
+        # bfcache — sinon chaque retour arrière recharge intégralement la
+        # page (perte d'un formulaire en cours, plus lent sur mobile). On
+        # épargne aussi /static/ et /media/ : les assets doivent rester mis
+        # en cache (service worker, performances).
         if (
-            request.user.is_authenticated
+            getattr(request.user, "is_demo", False)
             and not request.path.startswith(DEMO_EXEMPT_PATH_PREFIXES)
         ):
             r["Cache-Control"] = "no-store, no-cache, must-revalidate"

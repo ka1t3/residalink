@@ -112,16 +112,33 @@ def save_photos(instance, files, limit=3):
 
     - `instance` : Incident ou Post (doit avoir un manager lié `photos`).
     - `files` : itérable d'UploadedFile.
-    - `limit` : nombre maximal de photos à enregistrer.
+    - `limit` : nombre de photos qu'il est encore possible d'enregistrer
+      (les appelants passent `3 - photos.count()` lors d'une modification).
 
     Retourne (created, erreurs) : nombre de photos créées et liste des
-    messages d'erreur en français.
+    messages d'erreur en français. Aucun fichier fourni n'est jamais
+    enregistré silencieusement : si `limit` est déjà atteint, ou l'est en
+    cours de traitement, un message d'erreur explicite est ajouté à
+    `erreurs` (nommant, le cas échéant, les fichiers écartés).
     """
+    files = list(files)
     created = 0
     erreurs = []
+
+    if not files:
+        return created, erreurs
+
+    if limit <= 0:
+        erreurs.append(
+            "Vous avez déjà 3 photos. Supprimez-en une avant d'en ajouter une nouvelle."
+        )
+        return created, erreurs
+
+    discarded = []
     for f in files:
         if created >= limit:
-            break
+            discarded.append(_name(f) or "photo")
+            continue
         try:
             content = prepare_photo(f)
         except ValidationError as e:
@@ -129,4 +146,12 @@ def save_photos(instance, files, limit=3):
             continue
         instance.photos.create(image=content)
         created += 1
+
+    if discarded:
+        noms = ", ".join(discarded)
+        if len(discarded) == 1:
+            erreurs.append(f"Limite de 3 photos atteinte : « {noms} » n'a pas été ajoutée.")
+        else:
+            erreurs.append(f"Limite de 3 photos atteinte : {noms} n'ont pas été ajoutées.")
+
     return created, erreurs

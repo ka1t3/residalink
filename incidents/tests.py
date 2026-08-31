@@ -168,3 +168,46 @@ class IncidentPhotoPipelineTests(TestCase):
         incident.refresh_from_db()
         self.assertEqual(incident.photos.count(), 0)
         self.assertContains(resp, "La photo bad.jpg")
+
+    def test_edition_incident_limite_deja_atteinte_aucune_photo_ajoutee(self):
+        """Incident déjà à 3 photos : l'envoi d'une nouvelle photo n'en crée
+        aucune et un message d'erreur explicite est affiché — pas un succès
+        silencieux qui laisserait croire à l'ajout."""
+        incident = Incident.objects.create(
+            residence=self.residence, author=self.user, category=self.category, title="Existant",
+        )
+        for i in range(3):
+            incident.photos.create(image=SimpleUploadedFile(f"p{i}.jpg", _jpeg_bytes(), content_type="image/jpeg"))
+        resp = self.client.post(
+            reverse("incident_edit", args=[incident.pk]),
+            {"title": "Existant", "description": "", "location": "",
+             "photos": SimpleUploadedFile("nouvelle.jpg", _jpeg_bytes(), content_type="image/jpeg")},
+            follow=True,
+        )
+        incident.refresh_from_db()
+        self.assertEqual(incident.photos.count(), 3)
+        self.assertContains(resp, "Vous avez déjà 3 photos")
+
+    def test_edition_incident_limite_atteinte_en_cours_envoi(self):
+        """2 photos existantes + 3 envoyées : seule 1 est enregistrable, les
+        2 écartées sont nommées dans le message."""
+        incident = Incident.objects.create(
+            residence=self.residence, author=self.user, category=self.category, title="Existant",
+        )
+        for i in range(2):
+            incident.photos.create(image=SimpleUploadedFile(f"p{i}.jpg", _jpeg_bytes(), content_type="image/jpeg"))
+        resp = self.client.post(
+            reverse("incident_edit", args=[incident.pk]),
+            {"title": "Existant", "description": "", "location": "",
+             "photos": [
+                 SimpleUploadedFile("nouvelle1.jpg", _jpeg_bytes(), content_type="image/jpeg"),
+                 SimpleUploadedFile("nouvelle2.jpg", _jpeg_bytes(), content_type="image/jpeg"),
+                 SimpleUploadedFile("nouvelle3.jpg", _jpeg_bytes(), content_type="image/jpeg"),
+             ]},
+            follow=True,
+        )
+        incident.refresh_from_db()
+        self.assertEqual(incident.photos.count(), 3)
+        self.assertContains(resp, "Limite de 3 photos atteinte")
+        self.assertContains(resp, "nouvelle2.jpg")
+        self.assertContains(resp, "nouvelle3.jpg")

@@ -110,6 +110,44 @@ class PostPhotoPipelineTests(TestCase):
         self.assertEqual(post.photos.count(), 0)
         self.assertContains(resp, "La photo bad.jpg")
 
+    def test_edition_post_limite_deja_atteinte_aucune_photo_ajoutee(self):
+        post = Post.objects.create(
+            residence=self.residence, author=self.user, type="info", content="Existant",
+        )
+        for i in range(3):
+            post.photos.create(image=SimpleUploadedFile(f"p{i}.jpg", _jpeg_bytes(), content_type="image/jpeg"))
+        resp = self.client.post(
+            reverse("post_edit", args=[post.pk]),
+            {"content": "Existant", "type": "info",
+             "photos": SimpleUploadedFile("nouvelle.jpg", _jpeg_bytes(), content_type="image/jpeg")},
+            follow=True,
+        )
+        post.refresh_from_db()
+        self.assertEqual(post.photos.count(), 3)
+        self.assertContains(resp, "Vous avez déjà 3 photos")
+
+    def test_edition_post_limite_atteinte_en_cours_envoi(self):
+        post = Post.objects.create(
+            residence=self.residence, author=self.user, type="info", content="Existant",
+        )
+        for i in range(2):
+            post.photos.create(image=SimpleUploadedFile(f"p{i}.jpg", _jpeg_bytes(), content_type="image/jpeg"))
+        resp = self.client.post(
+            reverse("post_edit", args=[post.pk]),
+            {"content": "Existant", "type": "info",
+             "photos": [
+                 SimpleUploadedFile("nouvelle1.jpg", _jpeg_bytes(), content_type="image/jpeg"),
+                 SimpleUploadedFile("nouvelle2.jpg", _jpeg_bytes(), content_type="image/jpeg"),
+                 SimpleUploadedFile("nouvelle3.jpg", _jpeg_bytes(), content_type="image/jpeg"),
+             ]},
+            follow=True,
+        )
+        post.refresh_from_db()
+        self.assertEqual(post.photos.count(), 3)
+        self.assertContains(resp, "Limite de 3 photos atteinte")
+        self.assertContains(resp, "nouvelle2.jpg")
+        self.assertContains(resp, "nouvelle3.jpg")
+
     def test_suppression_photo_objets_un_par_un(self):
         post = Post.objects.create(
             residence=self.residence, author=self.user, type="info", content="Existant",
